@@ -50,11 +50,20 @@ input{font-family:var(--ui)}
 .hdr-ball{font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
 .hdr h1{font-family:var(--sport);font-size:20px;color:#fff;letter-spacing:2px;text-shadow:0 2px 6px rgba(0,0,0,.3)}
 .hdr p{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:3px;margin-top:2px}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.btn-next{
+  padding:7px 13px;border-radius:20px;
+  background:rgba(255,255,255,.15);color:#fff;
+  font-size:12px;font-weight:800;letter-spacing:.3px;
+  border:1.5px solid rgba(255,255,255,.3);
+  transition:all .2s;white-space:nowrap;
+}
+.btn-next:hover{background:rgba(255,255,255,.25)}
+.btn-next:active{transform:scale(.95);background:rgba(255,255,255,.3)}
 .sync-badge{
-  font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;
+  font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;
   background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);
-  letter-spacing:.3px;min-width:70px;text-align:center;
-  transition:all .3s;
+  letter-spacing:.3px;text-align:center;transition:all .3s;
 }
 .sync-badge.saving{background:rgba(245,158,11,.25);color:var(--gold)}
 .sync-badge.saved{background:rgba(74,222,128,.2);color:#4ade80}
@@ -224,7 +233,10 @@ input{font-family:var(--ui)}
       <div class="hdr-ball">&#9917;</div>
       <div><h1>QUINIELA MUNDIAL 2026</h1><p>USA &nbsp;&middot;&nbsp; MEXICO &nbsp;&middot;&nbsp; CANADA</p></div>
     </div>
-    <div class="sync-badge" id="syncBadge">&#128257; Live</div>
+    <div class="hdr-right">
+      <button class="btn-next" onclick="scrollToNext()">&#9889; Pr&#243;ximo</button>
+      <div class="sync-badge" id="syncBadge">&#128257; Live</div>
+    </div>
   </div>
 </div>
 
@@ -608,7 +620,7 @@ function renderPartidos(){
     }
     const winBar=wins.length?`<div class="winner-bar">&#127942; Gan&#243;: <strong>${wins.join(', ')}</strong></div>`:'';
 
-    html+=`<div class="mc${isEditing?' editing':''}">
+    html+=`<div id="mc-${pid}" class="mc${isEditing?' editing':''}">
       <div class="mc-bar">
         <div style="display:flex;align-items:center">${gBadge(p.g,p.fase)}${potBadge}</div>
         <div class="mc-time">${p.h}</div>
@@ -679,6 +691,30 @@ function showTab(name,btn){
 function renderAll(){
   renderPartidos();updateBolsa();
   if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();
+}
+
+// ═══ SCROLL TO NEXT ═══
+function scrollToNext(){
+  // Switch to partidos tab if needed
+  if(!document.getElementById('view-partidos').classList.contains('on')){
+    const btn=document.querySelectorAll('.tab')[0];
+    showTab('partidos',btn);
+  }
+  // Find first match without result (skip ones with no predictions for cleaner UX)
+  const next = PARTIDOS.find(p => !state.resultados[p.id] && Object.keys(state.predicciones[p.id]||{}).length > 0)
+             || PARTIDOS.find(p => !state.resultados[p.id]);
+  if(!next) return;
+  setTimeout(()=>{
+    const el=document.getElementById('mc-'+next.id);
+    if(el){
+      const top=el.getBoundingClientRect().top+window.scrollY-160; // offset for sticky header
+      window.scrollTo({top,behavior:'smooth'});
+      // Brief highlight flash
+      el.style.transition='box-shadow .2s';
+      el.style.boxShadow='0 0 0 3px var(--gold),0 4px 20px rgba(245,158,11,.4)';
+      setTimeout(()=>{ el.style.boxShadow=''; },1400);
+    }
+  },80);
 }
 
 // ═══ INIT ═══
