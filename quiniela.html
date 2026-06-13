@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiniela Familia Paniagua 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g1:#012515;--g2:#064e3b;--g3:#065f46;--gm:#15803d;--gl:#dcfce7;
+  --gold:#f59e0b;--gold2:#d97706;--goldl:#fef3c7;--goldd:#92400e;
+  --red:#dc2626;--redl:#fee2e2;
+  --bg:#eef1ed;--card:#fff;--brd:#dde3db;
+  --t1:#111827;--t2:#374151;--t3:#6b7280;--t4:#b0bba8;
+  --ui:'Inter',system-ui,sans-serif;--sport:'Oswald',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:var(--ui);background:var(--bg);color:var(--t1);min-height:100vh}
+button{border:none;cursor:pointer;font-family:var(--ui)}
+button:active{transform:scale(.96)}
+input{font-family:var(--ui)}
+
+/* LOADING */
+.loading-screen{
+  position:fixed;inset:0;background:linear-gradient(160deg,#012515,#064e3b);
+  z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  color:#fff;transition:opacity .4s;
+}
+.loading-screen.hidden{opacity:0;pointer-events:none}
+.loading-ball{font-size:52px;animation:spin 1.2s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.loading-txt{font-family:var(--sport);font-size:18px;letter-spacing:2px;opacity:.8}
+.loading-sub{font-size:12px;opacity:.5;letter-spacing:1px}
+
+/* HEADER */
+.hdr{
+  background:linear-gradient(150deg,#012515 0%,#064e3b 55%,#15803d 100%);
+  padding:12px 16px 10px;position:sticky;top:0;z-index:300;
+  box-shadow:0 3px 16px rgba(0,0,0,.45);overflow:hidden;
+}
+.hdr::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(255,255,255,.03) 28px,rgba(255,255,255,.03) 56px);
+  pointer-events:none;
+}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-ball{font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.hdr h1{font-family:var(--sport);font-size:20px;color:#fff;letter-spacing:2px;text-shadow:0 2px 6px rgba(0,0,0,.3)}
+.hdr p{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:3px;margin-top:2px}
+.sync-badge{
+  font-size:10px;font-weight:700;padding:4px 10px;border-radius:12px;
+  background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);
+  letter-spacing:.3px;min-width:70px;text-align:center;
+  transition:all .3s;
+}
+.sync-badge.saving{background:rgba(245,158,11,.25);color:var(--gold)}
+.sync-badge.saved{background:rgba(74,222,128,.2);color:#4ade80}
+.sync-badge.error{background:rgba(248,113,113,.2);color:#f87171}
+
+/* BOLSA */
+.bolsa{
+  background:linear-gradient(135deg,var(--goldd),#b45309);
+  padding:10px 18px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:50px;z-index:299;box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.bolsa-icon{font-size:22px}
+.bolsa-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.7)}
+.bolsa-num{font-family:var(--sport);font-size:28px;color:#fff;letter-spacing:2px;text-shadow:0 2px 6px rgba(0,0,0,.3);line-height:1}
+.bolsa-sub{margin-left:auto;font-size:10px;color:rgba(255,255,255,.6);text-align:right;line-height:1.4}
+
+/* TABS */
+.tabs{background:#fff;border-bottom:2px solid var(--brd);display:flex;position:sticky;top:98px;z-index:298}
+.tab{flex:1;padding:12px 10px;font-size:13px;font-weight:800;letter-spacing:.5px;
+  color:var(--t3);background:transparent;border-bottom:3px solid transparent;text-transform:uppercase}
+.tab.on{color:var(--gm);border-bottom-color:var(--gm)}
+
+/* VIEWS */
+.view{display:none;padding:14px 14px 90px}
+.view.on{display:block}
+
+/* DAY */
+.day-div{display:flex;align-items:center;gap:10px;margin:20px 0 10px}
+.day-div:first-child{margin-top:6px}
+.day-line{flex:1;height:1px;background:var(--brd)}
+.day-txt{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--t3);white-space:nowrap}
+
+/* MATCH CARD */
+.mc{background:var(--card);border-radius:16px;border:1px solid var(--brd);
+  margin-bottom:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);transition:box-shadow .2s}
+.mc.editing{box-shadow:0 0 0 2px var(--gm),0 4px 16px rgba(0,0,0,.1)}
+.mc-bar{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--brd)}
+.badge{padding:3px 11px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.bg-grupo{background:var(--gl);color:var(--g2)}
+.bg-r32{background:#dbeafe;color:#1d4ed8}
+.bg-r16{background:#ede9fe;color:#5b21b6}
+.bg-qf{background:#ffedd5;color:#9a3412}
+.bg-final{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000}
+.mc-time{font-size:12px;font-weight:600;color:var(--t3)}
+
+/* MATCH BODY */
+.mc-body{padding:16px 14px 14px}
+.match-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.team{flex:1;text-align:center}
+.team-flag{font-size:38px;line-height:1;margin-bottom:5px;display:block}
+.team-name{font-family:var(--sport);font-size:14px;color:var(--t1);letter-spacing:.5px;line-height:1.2}
+
+/* SCORE BOX */
+.score-box{
+  flex-shrink:0;text-align:center;min-width:90px;
+  cursor:pointer;padding:6px;border-radius:12px;transition:background .15s;
+}
+.score-box:hover{background:rgba(21,128,61,.06)}
+.score-box:active{background:rgba(21,128,61,.12)}
+.score-nums{font-family:var(--sport);font-size:42px;font-weight:700;
+  color:var(--g2);letter-spacing:6px;line-height:1;
+  display:flex;align-items:center;justify-content:center;gap:2px}
+.score-dash{font-size:30px;color:var(--t4);margin:0 2px}
+.vs-txt{font-family:var(--sport);font-size:22px;color:var(--t4);letter-spacing:3px;line-height:1}
+.score-hint{font-size:10px;color:var(--t4);margin-top:5px;font-weight:600;letter-spacing:.5px}
+
+/* SCORE EDIT */
+.score-edit{display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0}
+.se-row{display:flex;align-items:center;gap:6px}
+.sei{width:52px;padding:4px 2px;border:2.5px solid var(--gm);border-radius:10px;
+  font-family:var(--sport);font-size:34px;font-weight:700;text-align:center;color:var(--g2);background:#fff}
+.sei:focus{outline:none;border-color:var(--gold)}
+.sei-dash{font-family:var(--sport);font-size:28px;color:var(--t4)}
+.se-btns{display:flex;gap:6px}
+.se-ok{padding:6px 14px;background:var(--gm);color:#fff;border-radius:8px;font-size:13px;font-weight:800}
+.se-del{padding:6px 10px;background:var(--redl);color:var(--red);border-radius:8px;font-size:13px;font-weight:800}
+.se-x{padding:6px 10px;background:var(--bg);color:var(--t3);border-radius:8px;font-size:13px;font-weight:800;border:1.5px solid var(--brd)}
+
+/* CHIPS */
+.chips-wrap{border-top:1px solid var(--brd);overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding:10px 12px 12px;display:flex;gap:8px;align-items:stretch}
+.chips-wrap::-webkit-scrollbar{height:3px}
+.chips-wrap::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px}
+.chip{flex-shrink:0;cursor:pointer;background:var(--bg);border:1.5px solid var(--brd);
+  border-radius:11px;padding:7px 11px;min-width:72px;text-align:center;transition:all .15s}
+.chip:hover{border-color:var(--gm);background:#f0fdf4}
+.chip:active{transform:scale(.95)}
+.chip.win{background:linear-gradient(160deg,#fef3c7,#fde68a);border-color:var(--gold);box-shadow:0 3px 8px rgba(245,158,11,.3)}
+.chip.no-pred{opacity:.35}
+.chip.chip-editing{min-width:106px;border-color:var(--gm);background:#f0fdf4;box-shadow:0 0 0 2px rgba(21,128,61,.2);cursor:default}
+.chip-name{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:5px;white-space:nowrap}
+.win .chip-name{color:var(--goldd)}
+.chip-score{font-family:var(--sport);font-size:17px;color:var(--t1);letter-spacing:1px}
+.win .chip-score{color:var(--g2)}
+.chip-crown{font-size:11px;display:block;margin-top:2px}
+.chip-edit-hint{font-size:8px;color:var(--t4);margin-top:3px;letter-spacing:.3px}
+.chip-edit-row{display:flex;align-items:center;gap:3px;margin-top:4px;justify-content:center}
+.cie{width:28px;padding:2px 1px;border:1.5px solid var(--gm);border-radius:5px;
+  font-family:var(--sport);font-size:15px;font-weight:700;text-align:center;color:var(--g2);background:#fff}
+.cie:focus{outline:none;border-color:var(--gold)}
+.cie-sep{font-family:var(--sport);font-size:13px;color:var(--t4)}
+.cie-ok{padding:3px 7px;background:var(--gm);color:#fff;border-radius:5px;font-size:12px;font-weight:800;margin-left:2px}
+.cie-del{padding:3px 5px;background:var(--redl);color:var(--red);border-radius:5px;font-size:12px;font-weight:800;margin-left:1px}
+.no-preds{padding:10px 14px;font-size:12px;color:var(--t4);border-top:1px solid var(--brd);font-style:italic}
+.winner-bar{padding:7px 14px;background:var(--gl);border-top:1px solid #a7f3d0;font-size:12px;font-weight:700;color:var(--g2)}
+
+/* RANKING */
+.rank-banner{background:linear-gradient(135deg,var(--g1),var(--g2));border-radius:16px;
+  padding:16px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.rank-banner h2{font-family:var(--sport);font-size:20px;color:#fff;letter-spacing:2px}
+.rank-banner p{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:20px}
+.pod{flex:1;max-width:110px;text-align:center}
+.pod.p1{order:2}.pod.p2{order:1}.pod.p3{order:3}
+.pod-emoji{font-size:30px;margin-bottom:5px}
+.pod-name{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t1);line-height:1.2;margin-bottom:5px}
+.pod-q{font-family:var(--sport);font-size:20px;color:var(--g2);margin-bottom:3px}
+.pod-ac{font-size:10px;color:var(--t3)}
+.pod-base{border-radius:8px 8px 0 0;padding:10px 4px;margin-top:6px;border:1.5px solid var(--brd)}
+.p1 .pod-base{background:linear-gradient(180deg,#fef3c7,#fde68a);border-color:var(--gold);min-height:56px}
+.p2 .pod-base{background:var(--bg);min-height:36px}
+.p3 .pod-base{background:var(--bg);min-height:20px}
+.rank-list{display:flex;flex-direction:column;gap:8px}
+.rank-row{background:var(--card);border-radius:12px;border:1px solid var(--brd);
+  padding:13px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.rk-pos{font-size:15px;width:24px;text-align:center;font-weight:800;color:var(--t3)}
+.rk-name{flex:1;font-size:15px;font-weight:800;color:var(--t1)}
+.rk-stats{text-align:right}
+.rk-ac{font-size:11px;color:var(--t3);margin-bottom:2px}
+.rk-q{font-family:var(--sport);font-size:21px;color:var(--g2)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-ball">&#9917;</div>
+  <div class="loading-txt">QUINIELA MUNDIAL 2026</div>
+  <div class="loading-sub">Cargando datos...</div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-left">
+      <div class="hdr-ball">&#9917;</div>
+      <div><h1>QUINIELA MUNDIAL 2026</h1><p>USA &nbsp;&middot;&nbsp; MEXICO &nbsp;&middot;&nbsp; CANADA</p></div>
+    </div>
+    <div class="sync-badge" id="syncBadge">&#128257; Live</div>
+  </div>
+</div>
+
+<!-- BOLSA -->
+<div class="bolsa">
+  <div class="bolsa-icon">&#127942;</div>
+  <div><div class="bolsa-lbl">Bolsa acumulada</div><div class="bolsa-num" id="bolsaNum">Q0</div></div>
+  <div class="bolsa-sub" id="bolsaSub"></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab on" onclick="showTab('partidos',this)">&#127967; Partidos</button>
+  <button class="tab" onclick="showTab('ranking',this)">&#127942; Ranking</button>
+</div>
+
+<div id="view-partidos" class="view on"></div>
+<div id="view-ranking" class="view"></div>
+
+<script>
+// ═══ CONFIG JSONBin ═══
+const BIN_ID  = '6a2de180f5f4af5e29edbd6f';
+const API_KEY = '$2a$10$q5JfVtz1yTNGIS4VRogp4uiIAYBk.UPrvKzV6/qJqXsZIOIIMylSO';
+const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+
+// ═══ DATOS ═══
+const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA'];
+const SHORT={'DON CARLOS':'DON C.','EDNA':'EDNA','CAROL':'CAROL','VICKY':'VICKY',
+  'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA'};
+const F={
+  'MEXICO':'&#127474;&#127485;','SUDAFRICA':'&#127487;&#127462;','COREA DEL SUR':'&#127472;&#127479;',
+  'REP. CHECA':'&#127464;&#127487;','CANADA':'&#127464;&#127462;','BOSNIA Y HERZEG.':'&#127463;&#127462;',
+  'ESTADOS UNIDOS':'&#127482;&#127480;','PARAGUAY':'&#127477;&#127486;','QATAR':'&#127478;&#127462;',
+  'SUIZA':'&#127464;&#127469;','BRASIL':'&#127463;&#127479;','MARRUECOS':'&#127474;&#127462;',
+  'HAITI':'&#127469;&#127481;','ESCOCIA':'&#127988;&#917607;&#917602;&#917619;&#917603;&#917620;&#917631;',
+  'AUSTRALIA':'&#127462;&#127482;','TURQUIA':'&#127481;&#127479;','ALEMANIA':'&#127465;&#127466;',
+  'CURAZAO':'&#127464;&#127484;','PAISES BAJOS':'&#127475;&#127473;','JAPON':'&#127471;&#127477;',
+  'COSTA DE MARFIL':'&#127464;&#127470;','ECUADOR':'&#127466;&#127464;','SUECIA':'&#127480;&#127466;',
+  'TUNEZ':'&#127481;&#127475;','ESPANA':'&#127466;&#127480;','CABO VERDE':'&#127464;&#127483;',
+  'BELGICA':'&#127463;&#127466;','EGIPTO':'&#127466;&#127468;','ARABIA SAUDITA':'&#127480;&#127462;',
+  'URUGUAY':'&#127482;&#127486;','IRAN':'&#127470;&#127479;','NUEVA ZELANDA':'&#127475;&#127487;',
+  'FRANCIA':'&#127467;&#127479;','SENEGAL':'&#127480;&#127475;','IRAK':'&#127470;&#127478;',
+  'NORUEGA':'&#127475;&#127476;','ARGENTINA':'&#127462;&#127479;','ARGELIA':'&#127465;&#127487;',
+  'AUSTRIA':'&#127462;&#127481;','JORDANIA':'&#127471;&#127476;','PORTUGAL':'&#127477;&#127481;',
+  'REP. DEL CONGO':'&#127464;&#127465;',
+  'INGLATERRA':'&#127988;&#917607;&#917602;&#917606;&#917609;&#917607;&#917631;',
+  'CROACIA':'&#127469;&#127479;','GHANA':'&#127468;&#127469;','PANAMA':'&#127477;&#127462;',
+  'UZBEKISTAN':'&#127482;&#127487;','COLOMBIA':'&#127464;&#127476;',
+};
+function fl(t){
+  const k=t.toUpperCase()
+    .replace(/É/g,'E').replace(/Á/g,'A').replace(/Í/g,'I').replace(/Ó/g,'O')
+    .replace(/Ú/g,'U').replace(/Ü/g,'U').replace(/Ñ/g,'N')
+    .replace(/é/g,'E').replace(/á/g,'A').replace(/í/g,'I').replace(/ó/g,'O')
+    .replace(/ú/g,'U').replace(/ü/g,'U').replace(/ñ/g,'N');
+  return F[k]||'&#127988;';
+}
+
+const PARTIDOS=[
+  {id:1,e1:'MÉXICO',e2:'SUDÁFRICA',d:'2026-06-11',h:'15:00',g:'Grupo A'},
+  {id:2,e1:'COREA DEL SUR',e2:'REP. CHECA',d:'2026-06-11',h:'22:00',g:'Grupo A'},
+  {id:3,e1:'CANADÁ',e2:'BOSNIA Y HERZEG.',d:'2026-06-12',h:'15:00',g:'Grupo B'},
+  {id:4,e1:'ESTADOS UNIDOS',e2:'PARAGUAY',d:'2026-06-12',h:'21:00',g:'Grupo D'},
+  {id:5,e1:'QATAR',e2:'SUIZA',d:'2026-06-13',h:'15:00',g:'Grupo B'},
+  {id:6,e1:'BRASIL',e2:'MARRUECOS',d:'2026-06-13',h:'18:00',g:'Grupo C'},
+  {id:7,e1:'HAITÍ',e2:'ESCOCIA',d:'2026-06-13',h:'21:00',g:'Grupo C'},
+  {id:8,e1:'AUSTRALIA',e2:'TURQUÍA',d:'2026-06-14',h:'00:00',g:'Grupo D'},
+  {id:9,e1:'ALEMANIA',e2:'CURAZAO',d:'2026-06-14',h:'13:00',g:'Grupo E'},
+  {id:10,e1:'PAÍSES BAJOS',e2:'JAPÓN',d:'2026-06-14',h:'16:00',g:'Grupo F'},
+  {id:11,e1:'COSTA DE MARFIL',e2:'ECUADOR',d:'2026-06-14',h:'19:00',g:'Grupo E'},
+  {id:12,e1:'SUECIA',e2:'TÚNEZ',d:'2026-06-14',h:'22:00',g:'Grupo F'},
+  {id:13,e1:'ESPAÑA',e2:'CABO VERDE',d:'2026-06-15',h:'12:00',g:'Grupo H'},
+  {id:14,e1:'BÉLGICA',e2:'EGIPTO',d:'2026-06-15',h:'15:00',g:'Grupo G'},
+  {id:15,e1:'ARABIA SAUDITA',e2:'URUGUAY',d:'2026-06-15',h:'18:00',g:'Grupo H'},
+  {id:16,e1:'IRÁN',e2:'NUEVA ZELANDA',d:'2026-06-15',h:'21:00',g:'Grupo G'},
+  {id:17,e1:'FRANCIA',e2:'SENEGAL',d:'2026-06-16',h:'15:00',g:'Grupo I'},
+  {id:18,e1:'IRAK',e2:'NORUEGA',d:'2026-06-16',h:'18:00',g:'Grupo I'},
+  {id:19,e1:'ARGENTINA',e2:'ARGELIA',d:'2026-06-16',h:'21:00',g:'Grupo J'},
+  {id:20,e1:'AUSTRIA',e2:'JORDANIA',d:'2026-06-17',h:'00:00',g:'Grupo J'},
+  {id:21,e1:'PORTUGAL',e2:'REP. DEL CONGO',d:'2026-06-17',h:'13:00',g:'Grupo K'},
+  {id:22,e1:'INGLATERRA',e2:'CROACIA',d:'2026-06-17',h:'16:00',g:'Grupo L'},
+  {id:23,e1:'GHANA',e2:'PANAMÁ',d:'2026-06-17',h:'19:00',g:'Grupo L'},
+  {id:24,e1:'UZBEKISTÁN',e2:'COLOMBIA',d:'2026-06-17',h:'22:00',g:'Grupo K'},
+  {id:25,e1:'REP. CHECA',e2:'SUDÁFRICA',d:'2026-06-18',h:'12:00',g:'Grupo A'},
+  {id:26,e1:'SUIZA',e2:'BOSNIA Y HERZEG.',d:'2026-06-18',h:'15:00',g:'Grupo B'},
+  {id:27,e1:'CANADÁ',e2:'QATAR',d:'2026-06-18',h:'18:00',g:'Grupo B'},
+  {id:28,e1:'MÉXICO',e2:'COREA DEL SUR',d:'2026-06-18',h:'21:00',g:'Grupo A'},
+  {id:29,e1:'ESTADOS UNIDOS',e2:'AUSTRALIA',d:'2026-06-19',h:'15:00',g:'Grupo D'},
+  {id:30,e1:'ESCOCIA',e2:'MARRUECOS',d:'2026-06-19',h:'18:00',g:'Grupo C'},
+  {id:31,e1:'BRASIL',e2:'HAITÍ',d:'2026-06-19',h:'20:30',g:'Grupo C'},
+  {id:32,e1:'TURQUÍA',e2:'PARAGUAY',d:'2026-06-19',h:'23:00',g:'Grupo D'},
+  {id:33,e1:'PAÍSES BAJOS',e2:'SUECIA',d:'2026-06-20',h:'13:00',g:'Grupo F'},
+  {id:34,e1:'ALEMANIA',e2:'COSTA DE MARFIL',d:'2026-06-20',h:'16:00',g:'Grupo E'},
+  {id:35,e1:'ECUADOR',e2:'CURAZAO',d:'2026-06-20',h:'20:00',g:'Grupo E'},
+  {id:36,e1:'TÚNEZ',e2:'JAPÓN',d:'2026-06-21',h:'00:00',g:'Grupo F'},
+  {id:37,e1:'ESPAÑA',e2:'ARABIA SAUDITA',d:'2026-06-21',h:'12:00',g:'Grupo H'},
+  {id:38,e1:'BÉLGICA',e2:'IRÁN',d:'2026-06-21',h:'15:00',g:'Grupo G'},
+  {id:39,e1:'URUGUAY',e2:'CABO VERDE',d:'2026-06-21',h:'18:00',g:'Grupo H'},
+  {id:40,e1:'NUEVA ZELANDA',e2:'EGIPTO',d:'2026-06-21',h:'21:00',g:'Grupo G'},
+  {id:41,e1:'ARGENTINA',e2:'AUSTRIA',d:'2026-06-22',h:'13:00',g:'Grupo J'},
+  {id:42,e1:'FRANCIA',e2:'IRAK',d:'2026-06-22',h:'17:00',g:'Grupo I'},
+  {id:43,e1:'NORUEGA',e2:'SENEGAL',d:'2026-06-22',h:'20:00',g:'Grupo I'},
+  {id:44,e1:'JORDANIA',e2:'ARGELIA',d:'2026-06-22',h:'23:00',g:'Grupo J'},
+  {id:45,e1:'PORTUGAL',e2:'UZBEKISTÁN',d:'2026-06-23',h:'13:00',g:'Grupo K'},
+  {id:46,e1:'INGLATERRA',e2:'GHANA',d:'2026-06-23',h:'16:00',g:'Grupo L'},
+  {id:47,e1:'PANAMÁ',e2:'CROACIA',d:'2026-06-23',h:'19:00',g:'Grupo L'},
+  {id:48,e1:'COLOMBIA',e2:'REP. DEL CONGO',d:'2026-06-23',h:'22:00',g:'Grupo K'},
+  {id:49,e1:'SUIZA',e2:'CANADÁ',d:'2026-06-24',h:'15:00',g:'Grupo B'},
+  {id:50,e1:'BOSNIA Y HERZEG.',e2:'QATAR',d:'2026-06-24',h:'15:00',g:'Grupo B'},
+  {id:51,e1:'ESCOCIA',e2:'BRASIL',d:'2026-06-24',h:'18:00',g:'Grupo C'},
+  {id:52,e1:'MARRUECOS',e2:'HAITÍ',d:'2026-06-24',h:'18:00',g:'Grupo C'},
+  {id:53,e1:'REP. CHECA',e2:'MÉXICO',d:'2026-06-24',h:'21:00',g:'Grupo A'},
+  {id:54,e1:'SUDÁFRICA',e2:'COREA DEL SUR',d:'2026-06-24',h:'21:00',g:'Grupo A'},
+  {id:55,e1:'CURAZAO',e2:'COSTA DE MARFIL',d:'2026-06-25',h:'16:00',g:'Grupo E'},
+  {id:56,e1:'ECUADOR',e2:'ALEMANIA',d:'2026-06-25',h:'16:00',g:'Grupo E'},
+  {id:57,e1:'JAPÓN',e2:'SUECIA',d:'2026-06-25',h:'19:00',g:'Grupo F'},
+  {id:58,e1:'TÚNEZ',e2:'PAÍSES BAJOS',d:'2026-06-25',h:'19:00',g:'Grupo F'},
+  {id:59,e1:'TURQUÍA',e2:'ESTADOS UNIDOS',d:'2026-06-25',h:'22:00',g:'Grupo D'},
+  {id:60,e1:'PARAGUAY',e2:'AUSTRALIA',d:'2026-06-25',h:'22:00',g:'Grupo D'},
+  {id:61,e1:'NORUEGA',e2:'FRANCIA',d:'2026-06-26',h:'15:00',g:'Grupo I'},
+  {id:62,e1:'SENEGAL',e2:'IRAK',d:'2026-06-26',h:'15:00',g:'Grupo I'},
+  {id:63,e1:'CABO VERDE',e2:'ARABIA SAUDITA',d:'2026-06-26',h:'20:00',g:'Grupo H'},
+  {id:64,e1:'URUGUAY',e2:'ESPAÑA',d:'2026-06-26',h:'20:00',g:'Grupo H'},
+  {id:65,e1:'EGIPTO',e2:'IRÁN',d:'2026-06-26',h:'23:00',g:'Grupo G'},
+  {id:66,e1:'NUEVA ZELANDA',e2:'BÉLGICA',d:'2026-06-26',h:'23:00',g:'Grupo G'},
+  {id:67,e1:'PANAMÁ',e2:'INGLATERRA',d:'2026-06-27',h:'17:00',g:'Grupo L'},
+  {id:68,e1:'CROACIA',e2:'GHANA',d:'2026-06-27',h:'17:00',g:'Grupo L'},
+  {id:69,e1:'COLOMBIA',e2:'PORTUGAL',d:'2026-06-27',h:'19:30',g:'Grupo K'},
+  {id:70,e1:'REP. DEL CONGO',e2:'UZBEKISTÁN',d:'2026-06-27',h:'19:30',g:'Grupo K'},
+  {id:71,e1:'ARGELIA',e2:'AUSTRIA',d:'2026-06-27',h:'22:00',g:'Grupo J'},
+  {id:72,e1:'JORDANIA',e2:'ARGENTINA',d:'2026-06-27',h:'22:00',g:'Grupo J'},
+  {id:73,e1:'Por det.',e2:'Por det.',d:'2026-06-28',h:'15:00',g:'R32',fase:'elim'},
+  {id:74,e1:'Por det.',e2:'Por det.',d:'2026-06-29',h:'13:00',g:'R32',fase:'elim'},
+  {id:75,e1:'Por det.',e2:'Por det.',d:'2026-06-29',h:'16:30',g:'R32',fase:'elim'},
+  {id:76,e1:'Por det.',e2:'Por det.',d:'2026-06-29',h:'21:00',g:'R32',fase:'elim'},
+  {id:77,e1:'Por det.',e2:'Por det.',d:'2026-06-30',h:'13:00',g:'R32',fase:'elim'},
+  {id:78,e1:'Por det.',e2:'Por det.',d:'2026-06-30',h:'17:00',g:'R32',fase:'elim'},
+  {id:79,e1:'Por det.',e2:'Por det.',d:'2026-06-30',h:'21:00',g:'R32',fase:'elim'},
+  {id:80,e1:'Por det.',e2:'Por det.',d:'2026-07-01',h:'12:00',g:'R32',fase:'elim'},
+  {id:81,e1:'Por det.',e2:'Por det.',d:'2026-07-01',h:'16:00',g:'R32',fase:'elim'},
+  {id:82,e1:'Por det.',e2:'Por det.',d:'2026-07-01',h:'20:00',g:'R32',fase:'elim'},
+  {id:83,e1:'Por det.',e2:'Por det.',d:'2026-07-02',h:'15:00',g:'R32',fase:'elim'},
+  {id:84,e1:'Por det.',e2:'Por det.',d:'2026-07-02',h:'19:00',g:'R32',fase:'elim'},
+  {id:85,e1:'Por det.',e2:'Por det.',d:'2026-07-02',h:'23:00',g:'R32',fase:'elim'},
+  {id:86,e1:'Por det.',e2:'Por det.',d:'2026-07-03',h:'14:00',g:'R32',fase:'elim'},
+  {id:87,e1:'Por det.',e2:'Por det.',d:'2026-07-03',h:'18:00',g:'R32',fase:'elim'},
+  {id:88,e1:'Por det.',e2:'Por det.',d:'2026-07-03',h:'21:30',g:'R32',fase:'elim'},
+  {id:89,e1:'Por det.',e2:'Por det.',d:'2026-07-04',h:'13:00',g:'R16',fase:'elim'},
+  {id:90,e1:'Por det.',e2:'Por det.',d:'2026-07-04',h:'17:00',g:'R16',fase:'elim'},
+  {id:91,e1:'Por det.',e2:'Por det.',d:'2026-07-05',h:'16:00',g:'R16',fase:'elim'},
+  {id:92,e1:'Por det.',e2:'Por det.',d:'2026-07-05',h:'20:00',g:'R16',fase:'elim'},
+  {id:93,e1:'Por det.',e2:'Por det.',d:'2026-07-06',h:'15:00',g:'R16',fase:'elim'},
+  {id:94,e1:'Por det.',e2:'Por det.',d:'2026-07-06',h:'20:00',g:'R16',fase:'elim'},
+  {id:95,e1:'Por det.',e2:'Por det.',d:'2026-07-07',h:'12:00',g:'R16',fase:'elim'},
+  {id:96,e1:'Por det.',e2:'Por det.',d:'2026-07-07',h:'16:00',g:'R16',fase:'elim'},
+  {id:97,e1:'Por det.',e2:'Por det.',d:'2026-07-09',h:'16:00',g:'Cuartos',fase:'elim'},
+  {id:98,e1:'Por det.',e2:'Por det.',d:'2026-07-10',h:'15:00',g:'Cuartos',fase:'elim'},
+  {id:99,e1:'Por det.',e2:'Por det.',d:'2026-07-11',h:'17:00',g:'Cuartos',fase:'elim'},
+  {id:100,e1:'Por det.',e2:'Por det.',d:'2026-07-11',h:'21:00',g:'Cuartos',fase:'elim'},
+  {id:101,e1:'Por det.',e2:'Por det.',d:'2026-07-14',h:'15:00',g:'Semis',fase:'elim'},
+  {id:102,e1:'Por det.',e2:'Por det.',d:'2026-07-15',h:'15:00',g:'Semis',fase:'elim'},
+  {id:103,e1:'Por det.',e2:'Por det.',d:'2026-07-18',h:'17:00',g:'3er Lugar',fase:'elim'},
+  {id:104,e1:'Por det.',e2:'Por det.',d:'2026-07-19',h:'15:00',g:'FINAL',fase:'elim'},
+];
+
+// ═══ STATE ═══
+let state={resultados:{},predicciones:{}};
+let editScore=null,editChip=null,saving=false;
+
+// ═══ JSONBIN ═══
+async function loadState(){
+  try{
+    const r=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY}});
+    const d=await r.json();
+    state=d.record;
+  }catch(e){console.error('Load error:',e);}
+}
+
+async function saveState(){
+  if(saving)return;
+  saving=true;
+  setSyncBadge('saving','&#128257; Guardando...');
+  try{
+    await fetch(BIN_URL,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
+      body:JSON.stringify(state)
+    });
+    setSyncBadge('saved','&#10003; Guardado');
+    setTimeout(()=>setSyncBadge('','&#128257; Live'),2500);
+  }catch(e){
+    setSyncBadge('error','&#9888; Error');
+    setTimeout(()=>setSyncBadge('','&#128257; Live'),3000);
+  }
+  saving=false;
+}
+
+function setSyncBadge(cls,txt){
+  const b=document.getElementById('syncBadge');
+  b.className='sync-badge'+(cls?' '+cls:'');
+  b.innerHTML=txt;
+}
+
+// ═══ FONDO ═══
+function calcFondos(){
+  let acum=0;const fondo={},ganadores={},ganancias={};
+  J.forEach(j=>ganancias[j]=0);
+  for(const p of PARTIDOS){
+    const preds=state.predicciones[p.id]||{};
+    if(!Object.keys(preds).length)continue;
+    const base=p.fase==='elim'?40:8;
+    const pot=acum+base;fondo[p.id]=pot;
+    const res=state.resultados[p.id];
+    if(res){
+      const wins=J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
+      ganadores[p.id]=wins;
+      if(wins.length){const e=pot/wins.length;wins.forEach(j=>ganancias[j]+=e);acum=0;}
+      else acum=pot;
+    }
+  }
+  return{fondo,ganadores,acumulado:acum,ganancias};
+}
+
+// ═══ FORMAT ═══
+const DS=['dom','lun','mar','mié','jue','vie','sáb'],MS=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function fmtD(d){const dt=new Date(d+'T12:00:00');return`${DS[dt.getDay()]} ${dt.getDate()} ${MS[dt.getMonth()]}`;}
+function gBadge(g,fase){
+  if(fase==='elim'){
+    if(g==='FINAL')return`<span class="badge bg-final">${g}</span>`;
+    if(g==='R32'||g==='R16')return`<span class="badge bg-r32">${g}</span>`;
+    return`<span class="badge bg-qf">${g}</span>`;
+  }
+  return`<span class="badge bg-grupo">${g}</span>`;
+}
+
+// ═══ INLINE EDIT ═══
+function startScoreEdit(pid){
+  editScore=pid;editChip=null;renderPartidos();
+  setTimeout(()=>{const el=document.getElementById('sl-'+pid);if(el){el.focus();el.select();}},60);
+}
+function saveScore(pid){
+  const l=document.getElementById('sl-'+pid)?.value;
+  const v=document.getElementById('sv-'+pid)?.value;
+  if(l!==''&&v!==''&&l!=null&&v!=null)
+    state.resultados[pid]=[parseInt(l),parseInt(v)];
+  editScore=null;saveState();renderAll();
+}
+function delScore(pid){delete state.resultados[pid];editScore=null;saveState();renderAll();}
+function cancelScore(){editScore=null;renderPartidos();}
+
+function startChipEdit(pid,player){
+  editChip={pid,player};editScore=null;renderPartidos();
+  const key=player.replace(/ /g,'_');
+  setTimeout(()=>{const el=document.getElementById('cl-'+pid+'-'+key);if(el){el.focus();el.select();}},60);
+}
+function saveChip(pid,player){
+  const key=player.replace(/ /g,'_');
+  const l=document.getElementById('cl-'+pid+'-'+key)?.value;
+  const v=document.getElementById('cv-'+pid+'-'+key)?.value;
+  if(l!==''&&v!==''&&l!=null&&v!=null){
+    if(!state.predicciones[pid])state.predicciones[pid]={};
+    state.predicciones[pid][player]=[parseInt(l),parseInt(v)];
+  }
+  editChip=null;saveState();renderAll();
+}
+function delChip(pid,player){
+  if(state.predicciones[pid])delete state.predicciones[pid][player];
+  editChip=null;saveState();renderAll();
+}
+function cancelChip(){editChip=null;renderPartidos();}
+function onScoreKey(e,pid){if(e.key==='Enter')saveScore(pid);if(e.key==='Escape')cancelScore();}
+function onChipKey(e,pid,player){if(e.key==='Enter')saveChip(pid,player);if(e.key==='Escape')cancelChip();}
+
+// ═══ RENDER PARTIDOS ═══
+function renderPartidos(){
+  const{fondo,ganadores}=calcFondos();
+  const sy=window.scrollY;
+  const el=document.getElementById('view-partidos');
+  let html='';let lastDay='';
+  for(const p of PARTIDOS){
+    if(p.d!==lastDay){
+      html+=`<div class="day-div"><div class="day-line"></div><div class="day-txt">${fmtD(p.d)}</div><div class="day-line"></div></div>`;
+      lastDay=p.d;
+    }
+    const res=state.resultados[p.id];
+    const preds=state.predicciones[p.id]||{};
+    const hasPreds=Object.keys(preds).length>0;
+    const wins=ganadores[p.id]||[];
+    const f=fondo[p.id];
+    const pid=p.id;
+    const isEditingScore=(editScore===pid);
+    const isEditing=isEditingScore||(editChip&&editChip.pid===pid);
+    const potBadge=(!res&&f)?`<span style="font-size:10px;font-weight:800;color:var(--goldd);background:var(--goldl);padding:2px 8px;border-radius:10px;border:1px solid var(--gold);margin-left:6px">&#128176; Q${f}</span>`:'';
+
+    let scoreHtml;
+    if(isEditingScore){
+      const rv=res?res[0]:'',rr=res?res[1]:'';
+      scoreHtml=`<div class="score-edit">
+        <div class="se-row">
+          <input id="sl-${pid}" class="sei" type="number" min="0" max="20" value="${rv}" placeholder="0" onkeydown="onScoreKey(event,${pid})">
+          <span class="sei-dash">&#8212;</span>
+          <input id="sv-${pid}" class="sei" type="number" min="0" max="20" value="${rr}" placeholder="0" onkeydown="onScoreKey(event,${pid})">
+        </div>
+        <div class="se-btns">
+          <button class="se-ok" onclick="saveScore(${pid})">&#10003; Guardar</button>
+          ${res?`<button class="se-del" onclick="delScore(${pid})">&#128465;</button>`:''}
+          <button class="se-x" onclick="cancelScore()">&#10005;</button>
+        </div>
+      </div>`;
+    }else if(res){
+      scoreHtml=`<div class="score-box" onclick="startScoreEdit(${pid})">
+        <div class="score-nums">${res[0]}<span class="score-dash">&#8212;</span>${res[1]}</div>
+        <div class="score-hint">&#9999;&#65039; editar</div>
+      </div>`;
+    }else{
+      scoreHtml=`<div class="score-box" onclick="startScoreEdit(${pid})">
+        <div class="vs-txt">VS</div>
+        <div class="score-hint">+ resultado</div>
+      </div>`;
+    }
+
+    let chipsHtml='';
+    if(hasPreds){
+      chipsHtml='<div class="chips-wrap">';
+      J.forEach(j=>{
+        const pr=preds[j];
+        const key=j.replace(/ /g,'_');
+        const isEditingThis=editChip&&editChip.pid===pid&&editChip.player===j;
+        const won=res&&pr&&pr[0]===res[0]&&pr[1]===res[1];
+        if(isEditingThis){
+          chipsHtml+=`<div class="chip chip-editing">
+            <div class="chip-name">${SHORT[j]}</div>
+            <div class="chip-edit-row">
+              <input id="cl-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[0]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
+              <span class="cie-sep">-</span>
+              <input id="cv-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[1]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
+              <button class="cie-ok" onclick="saveChip(${pid},'${j}')">&#10003;</button>
+              ${pr?`<button class="cie-del" onclick="delChip(${pid},'${j}')">&#128465;</button>`:''}
+            </div>
+          </div>`;
+        }else if(!pr){
+          chipsHtml+=`<div class="chip no-pred" onclick="startChipEdit(${pid},'${j}')">
+            <div class="chip-name">${SHORT[j]}</div>
+            <div class="chip-score">&#8212;</div>
+            <div class="chip-edit-hint">+ pred</div>
+          </div>`;
+        }else{
+          chipsHtml+=`<div class="chip${won?' win':''}" onclick="startChipEdit(${pid},'${j}')">
+            <div class="chip-name">${SHORT[j]}</div>
+            <div class="chip-score">${pr[0]}-${pr[1]}</div>
+            ${won?`<div class="chip-crown">&#11088;</div>`:`<div class="chip-edit-hint">&#9999;&#65039;</div>`}
+          </div>`;
+        }
+      });
+      chipsHtml+='</div>';
+    }else{
+      chipsHtml=`<div class="no-preds">Sin predicciones &#8212; toca una ficha para agregar</div>`;
+    }
+    const winBar=wins.length?`<div class="winner-bar">&#127942; Gan&#243;: <strong>${wins.join(', ')}</strong></div>`:'';
+
+    html+=`<div class="mc${isEditing?' editing':''}">
+      <div class="mc-bar">
+        <div style="display:flex;align-items:center">${gBadge(p.g,p.fase)}${potBadge}</div>
+        <div class="mc-time">${p.h}</div>
+      </div>
+      <div class="mc-body">
+        <div class="match-row">
+          <div class="team"><span class="team-flag">${fl(p.e1)}</span><div class="team-name">${p.e1}</div></div>
+          <div>${scoreHtml}</div>
+          <div class="team"><span class="team-flag">${fl(p.e2)}</span><div class="team-name">${p.e2}</div></div>
+        </div>
+      </div>
+      ${chipsHtml}${winBar}
+    </div>`;
+  }
+  el.innerHTML=html;
+  window.scrollTo(0,sy);
+}
+
+// ═══ RENDER RANKING ═══
+function renderRanking(){
+  const{ganancias,acumulado}=calcFondos();
+  const aciertos={};J.forEach(j=>aciertos[j]=0);
+  for(const[pid,res]of Object.entries(state.resultados)){
+    const preds=state.predicciones[pid]||{};
+    J.forEach(j=>{const pr=preds[j];if(pr&&pr[0]===res[0]&&pr[1]===res[1])aciertos[j]++;});
+  }
+  const sorted=[...J].sort((a,b)=>ganancias[b]-ganancias[a]||aciertos[b]-aciertos[a]);
+  const medals=['&#127945;','&#129352;','&#129353;'];
+  let pod='<div class="podium">';
+  sorted.slice(0,3).forEach((j,i)=>{
+    const q=ganancias[j],ac=aciertos[j];
+    pod+=`<div class="pod p${i+1}"><div class="pod-emoji">${medals[i]}</div>
+      <div class="pod-name">${j}</div><div class="pod-q">Q${q%1===0?q:q.toFixed(2)}</div>
+      <div class="pod-ac">${ac} acierto${ac!==1?'s':''}</div><div class="pod-base"></div></div>`;
+  });
+  pod+='</div>';
+  let list='<div class="rank-list">';
+  sorted.slice(3).forEach((j,i)=>{
+    const q=ganancias[j],ac=aciertos[j];
+    list+=`<div class="rank-row"><div class="rk-pos">${i+4}</div><div class="rk-name">${j}</div>
+      <div class="rk-stats"><div class="rk-ac">${ac} acierto${ac!==1?'s':''}</div>
+      <div class="rk-q">Q${q%1===0?q:q.toFixed(2)}</div></div></div>`;
+  });
+  list+='</div>';
+  document.getElementById('view-ranking').innerHTML=`
+    <div class="rank-banner"><div style="font-size:36px">&#127942;</div>
+      <div><h2>RANKING</h2><p>Bolsa acumulada: Q${acumulado} &nbsp;|&nbsp; Mundial 2026</p></div>
+    </div>${pod}${list}`;
+}
+
+// ═══ BOLSA ═══
+function updateBolsa(){
+  const{fondo,acumulado}=calcFondos();
+  const next=PARTIDOS.find(p=>!state.resultados[p.id]&&Object.keys(state.predicciones[p.id]||{}).length>0);
+  const pot=next?(fondo[next.id]||0):acumulado;
+  document.getElementById('bolsaNum').textContent='Q'+pot;
+  document.getElementById('bolsaSub').innerHTML=next&&pot>0?`Pr&#243;ximo:<br>${next.e1} vs ${next.e2}`:'';
+}
+
+// ═══ NAV ═══
+function showTab(name,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('view-'+name).classList.add('on');
+  btn.classList.add('on');
+  if(name==='ranking')renderRanking();
+}
+function renderAll(){
+  renderPartidos();updateBolsa();
+  if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();
+}
+
+// ═══ INIT ═══
+async function init(){
+  await loadState();
+  document.getElementById('loadingScreen').classList.add('hidden');
+  renderAll();
+  // Auto-refresh cada 60 segundos
+  setInterval(async()=>{
+    await loadState();
+    if(!editScore&&!editChip)renderAll();
+  },60000);
+}
+init();
+</script>
+</body>
+</html>
