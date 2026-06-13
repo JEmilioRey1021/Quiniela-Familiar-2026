@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiniela Familia Paniagua 2026</title>
+<title>Quiniela Mundial 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -104,9 +104,28 @@ input{font-family:var(--ui)}
 /* MATCH BODY */
 .mc-body{padding:16px 14px 14px}
 .match-row{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.team{flex:1;text-align:center}
-.team-flag{font-size:38px;line-height:1;margin-bottom:5px;display:block}
-.team-name{font-family:var(--sport);font-size:14px;color:var(--t1);letter-spacing:.5px;line-height:1.2}
+/* FLAG IMAGES */
+.team {
+  flex: 1; text-align: center; position: relative;
+  border-radius: 12px; overflow: hidden; padding: 10px 6px;
+}
+.team-flag-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0.13; filter: blur(3px); transform: scale(1.15);
+  pointer-events: none;
+}
+.team-flag-img {
+  width: 54px; height: 36px; object-fit: cover;
+  border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  margin: 0 auto 7px; display: block; position: relative; z-index: 1;
+}
+.team-name {
+  font-family: var(--sport); font-size: 13px; color: var(--t1);
+  letter-spacing: .5px; line-height: 1.2;
+  position: relative; z-index: 1;
+}
+
 
 /* SCORE BOX */
 .score-box{
@@ -371,6 +390,29 @@ const PARTIDOS=[
   {id:104,e1:'Por det.',e2:'Por det.',d:'2026-07-19',h:'15:00',g:'FINAL',fase:'elim'},
 ];
 
+
+// ═══ COUNTRY CODES (flagcdn.com) ═══
+const CC={
+  'MÉXICO':'mx','SUDÁFRICA':'za','COREA DEL SUR':'kr','REP. CHECA':'cz',
+  'CANADÁ':'ca','BOSNIA Y HERZEG.':'ba','ESTADOS UNIDOS':'us','PARAGUAY':'py',
+  'QATAR':'qa','SUIZA':'ch','BRASIL':'br','MARRUECOS':'ma',
+  'HAITÍ':'ht','ESCOCIA':'gb-sct','AUSTRALIA':'au','TURQUÍA':'tr',
+  'ALEMANIA':'de','CURAZAO':'cw','PAÍSES BAJOS':'nl','JAPÓN':'jp',
+  'COSTA DE MARFIL':'ci','ECUADOR':'ec','SUECIA':'se','TÚNEZ':'tn',
+  'ESPAÑA':'es','CABO VERDE':'cv','BÉLGICA':'be','EGIPTO':'eg',
+  'ARABIA SAUDITA':'sa','URUGUAY':'uy','IRÁN':'ir','NUEVA ZELANDA':'nz',
+  'FRANCIA':'fr','SENEGAL':'sn','IRAK':'iq','NORUEGA':'no',
+  'ARGENTINA':'ar','ARGELIA':'dz','AUSTRIA':'at','JORDANIA':'jo',
+  'PORTUGAL':'pt','REP. DEL CONGO':'cd','INGLATERRA':'gb-eng','CROACIA':'hr',
+  'GHANA':'gh','PANAMÁ':'pa','UZBEKISTÁN':'uz','COLOMBIA':'co',
+};
+function flagUrl(name){const cc=CC[name];return cc?`https://flagcdn.com/w80/${cc}.png`:'';}
+function teamBlock(name){
+  const url=flagUrl(name);
+  const bg=url?`<div class="team-flag-bg" style="background-image:url('${url}')"></div>`:'';
+  const img=url?`<img class="team-flag-img" src="${url}" alt="${name}" loading="lazy">`:'<div style="height:36px"></div>';
+  return `<div class="team">${bg}${img}<div class="team-name">${name}</div></div>`;
+}
 // ═══ STATE ═══
 let state={resultados:{},predicciones:{}};
 let editScore=null,editChip=null,saving=false;
@@ -573,9 +615,9 @@ function renderPartidos(){
       </div>
       <div class="mc-body">
         <div class="match-row">
-          <div class="team"><span class="team-flag">${fl(p.e1)}</span><div class="team-name">${p.e1}</div></div>
+          ${teamBlock(p.e1)}
           <div>${scoreHtml}</div>
-          <div class="team"><span class="team-flag">${fl(p.e2)}</span><div class="team-name">${p.e2}</div></div>
+          ${teamBlock(p.e2)}
         </div>
       </div>
       ${chipsHtml}${winBar}
@@ -594,7 +636,7 @@ function renderRanking(){
     J.forEach(j=>{const pr=preds[j];if(pr&&pr[0]===res[0]&&pr[1]===res[1])aciertos[j]++;});
   }
   const sorted=[...J].sort((a,b)=>ganancias[b]-ganancias[a]||aciertos[b]-aciertos[a]);
-  const medals=['&#127945;','&#129352;','&#129353;'];
+  const medals=['&#129351;','&#129352;','&#129353;'];
   let pod='<div class="podium">';
   sorted.slice(0,3).forEach((j,i)=>{
     const q=ganancias[j],ac=aciertos[j];
