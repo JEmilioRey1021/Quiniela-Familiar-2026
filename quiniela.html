@@ -68,7 +68,6 @@ input{font-family:var(--ui)}
 
 .view{display:none}
 .view.on{display:block}
-#partidos-list{padding:12px 14px 90px}
 
 .group-section{margin-bottom:20px}
 .group-header{display:flex;align-items:center;gap:10px;padding:10px 0 8px;margin-bottom:10px;border-bottom:1px solid var(--brd);}
@@ -219,6 +218,16 @@ input{font-family:var(--ui)}
   display:flex;align-items:center;justify-content:center;
   border:2px solid var(--bg);box-shadow:0 2px 6px rgba(0,0,0,.4);
 }
+
+.phase-tabs{display:flex;gap:8px;padding:12px 14px 10px;overflow-x:auto;
+  position:sticky;top:98px;z-index:297;
+  background:var(--bg);border-bottom:1px solid var(--brd);}
+.phase-tabs::-webkit-scrollbar{height:0}
+.ptab{flex-shrink:0;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:800;
+  background:var(--card);color:var(--t3);border:1.5px solid var(--brd);white-space:nowrap;transition:all .2s;}
+.ptab.on{background:var(--gm);color:#fff;border-color:var(--gm);box-shadow:0 2px 12px rgba(21,128,61,.4)}
+.phase-section{display:none;padding:12px 14px 90px}
+.phase-section.on{display:block}
 </style>
 </head>
 <body>
@@ -254,7 +263,20 @@ input{font-family:var(--ui)}
 </div>
 
 <div id="view-partidos" class="view on">
-  <div id="partidos-list"></div>
+  <div class="phase-tabs">
+    <button class="ptab on" onclick="showPhase('grupos',this)">Fase de Grupos</button>
+    <button class="ptab" onclick="showPhase('r32',this)">Ronda de 32</button>
+    <button class="ptab" onclick="showPhase('r16',this)">Octavos</button>
+    <button class="ptab" onclick="showPhase('qf',this)">Cuartos</button>
+    <button class="ptab" onclick="showPhase('sf',this)">Semis</button>
+    <button class="ptab" onclick="showPhase('final',this)">Final</button>
+  </div>
+  <div id="phase-grupos" class="phase-section on"></div>
+  <div id="phase-r32"    class="phase-section"></div>
+  <div id="phase-r16"    class="phase-section"></div>
+  <div id="phase-qf"     class="phase-section"></div>
+  <div id="phase-sf"     class="phase-section"></div>
+  <div id="phase-final"  class="phase-section"></div>
 </div>
 <div id="view-ranking" class="view"></div>
 
@@ -578,18 +600,33 @@ function renderCard(p,fondo,ganadores){
 function renderPartidos(){
   const{fondo,ganadores}=calcFondos();
   const sy=window.scrollY;
-  let html='';let lastDay='';
-  for(const p of PARTIDOS){
-    if(p.d!==lastDay){
-      if(lastDay) html+='</div>';
-      html+=`<div class="day-group"><div class="day-header">${fmtD(p.d)}</div>`;
-      lastDay=p.d;
-    }
-    html+=renderCard(p,fondo,ganadores);
+
+  // Grupos: todos en orden cronológico (sin subdivisión por grupo)
+  const grupoMatches=PARTIDOS.filter(p=>!p.fase);
+  document.getElementById('phase-grupos').innerHTML=
+    grupoMatches.map(p=>renderCard(p,fondo,ganadores)).join('');
+
+  // Eliminatorias: cada fase en orden
+  const phases=[
+    {id:'r32',  gval:'R32'},
+    {id:'r16',  gval:'R16'},
+    {id:'qf',   gval:'Cuartos'},
+    {id:'sf',   gval:'Semis'},
+    {id:'final',gvals:['3er Lugar','FINAL']},
+  ];
+  for(const ph of phases){
+    const ms=ph.gvals?PARTIDOS.filter(p=>ph.gvals.includes(p.g)):PARTIDOS.filter(p=>p.g===ph.gval);
+    document.getElementById('phase-'+ph.id).innerHTML=
+      ms.map(p=>renderCard(p,fondo,ganadores)).join('');
   }
-  if(lastDay) html+='</div>';
-  document.getElementById('partidos-list').innerHTML=html;
   window.scrollTo(0,sy);
+}
+
+function showPhase(phase,btn){
+  document.querySelectorAll('.phase-section').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('phase-'+phase).classList.add('on');
+  btn.classList.add('on');
 }
 
 
@@ -604,7 +641,19 @@ function renderRanking(){
   let pod='<div class="podium">';
   sorted.slice(0,3).forEach((j,i)=>{
     const q=ganancias[j],ac=aciertos[j];
-    pod+=`<div class="pod p${i+1}"><div class="pod-emoji">${medals[i]}</div><div class="pod-name">${j}</div><div class="pod-q">Q${q%1===0?q:q.toFixed(2)}</div><div class="pod-ac">${ac} acierto${ac!==1?'s':''}</div><div class="pod-base"></div></div>`;
+    const bdrs=['#f59e0b','#aaaaaa','#b45309'];
+    const purl=PHOTOS[j];
+    const pini=j.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const pbg=['#1d4ed8','#7c3aed','#be185d','#0f766e','#b45309','#15803d','#c2410c','#0369a1'][J.indexOf(j)%8];
+    const pimg=purl
+      ?`<img src="${purl}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid ${bdrs[i]};display:block;margin:0 auto 4px">`
+      :`<div style="width:72px;height:72px;border-radius:50%;background:${pbg};border:3px solid ${bdrs[i]};display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-family:var(--sport);font-size:20px;color:#fff">${pini}</div>`;
+    const pnum=['🥇','🥈','🥉'][i];
+    pod+=`<div class="pod p${i+1}">
+      <div style="position:relative;display:inline-block">${pimg}<div style="position:absolute;bottom:-4px;right:-4px;background:${bdrs[i]};color:#000;width:22px;height:22px;border-radius:50%;font-family:var(--sport);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)">${i+1}</div></div>
+      <div class="pod-name">${j}</div><div class="pod-q">Q${q%1===0?q:q.toFixed(2)}</div>
+      <div class="pod-ac">${ac} acierto${ac!==1?'s':''}</div><div class="pod-base"></div>
+    </div>`;
   });
   pod+='</div>';
   let list='<div class="rank-list">';
@@ -640,15 +689,20 @@ function scrollToNext(){
   const next=PARTIDOS.find(p=>!state.resultados[p.id]&&Object.keys(state.predicciones[p.id]||{}).length>0)
            ||PARTIDOS.find(p=>!state.resultados[p.id]);
   if(!next)return;
+  const phaseMap={'R32':'r32','R16':'r16','Cuartos':'qf','Semis':'sf','FINAL':'final','3er Lugar':'final'};
+  const phaseId=next.fase==='elim'?(phaseMap[next.g]||'r32'):'grupos';
+  const ptabs=document.querySelectorAll('.ptab');
+  const ids=['grupos','r32','r16','qf','sf','final'];
+  showPhase(phaseId, ptabs[ids.indexOf(phaseId)]);
   setTimeout(()=>{
     const el=document.getElementById('mc-'+next.id);
     if(el){
-      window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-160,behavior:'smooth'});
+      window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-200,behavior:'smooth'});
       el.style.transition='box-shadow .2s';
       el.style.boxShadow='0 0 0 3px var(--gold),0 4px 20px rgba(245,158,11,.4)';
       setTimeout(()=>{el.style.boxShadow='';},1400);
     }
-  },80);
+  },100);
 }
 
 function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();}
