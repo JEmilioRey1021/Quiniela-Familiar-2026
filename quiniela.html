@@ -84,6 +84,7 @@ input{font-family:var(--ui)}
 .mc-bar{display:flex;align-items:center;justify-content:space-between;
   padding:7px 12px;background:var(--card2);border-bottom:1px solid var(--brd);}
 .mc-done{font-size:10px;font-weight:700;color:#4ade80}
+.mc-win{font-size:11px;font-weight:800;color:var(--goldd);letter-spacing:.2px}
 .mc-pend{font-size:10px;font-weight:600;color:var(--t3)}
 .mc-date{font-size:10px;color:var(--t3);font-weight:600}
 .pot-badge{font-size:10px;font-weight:800;color:var(--goldd);
@@ -461,7 +462,17 @@ function renderCard(p,fondo,ganadores){
   const hasPreds=Object.keys(preds).length>0,wins=ganadores[p.id]||[],f=fondo[p.id],pid=p.id;
   const isEditingScore=(editScore===pid),isEditing=isEditingScore||(editChip&&editChip.pid===pid);
   const potBadge=(!res&&f)?`<span class="pot-badge">Q${f}</span>`:'';
-  const statusHtml=res?`<span class="mc-done">Terminado</span>`:`<span class="mc-pend">Pendiente</span>`;
+  let statusHtml;
+  if(!res){
+    statusHtml=`<span class="mc-pend">Pendiente</span>`;
+  }else if(wins.length>0){
+    const each=f/wins.length;
+    const qs=each%1===0?each:each.toFixed(2);
+    const names=wins.join(', ');
+    statusHtml=`<span class="mc-win">${names} &mdash; Q${qs}</span>`;
+  }else{
+    statusHtml=`<span class="mc-done">Terminado &mdash; nadie acert&oacute;</span>`;
+  }
   const dateHtml=`<span class="mc-date">${fmtD(p.d)} &middot; ${p.h}</span>`;
 
   let scoreHtml;
