@@ -198,6 +198,12 @@ input{font-family:var(--ui)}
   margin-bottom:10px;display:flex;align-items:center;gap:10px;
 }
 .day-header::before,.day-header::after{content:'';flex:1;height:1px;background:var(--brd)}
+
+.rk-avatar{
+  border-radius:50%;background-size:cover;background-position:center;
+  flex-shrink:0;border:2px solid;display:inline-flex;align-items:center;justify-content:center;
+}
+.rk-avatar-ini{font-family:var(--sport);font-size:14px;color:#fff;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -245,6 +251,22 @@ const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA'];
 const SHORT={'DON CARLOS':'DON C.','EDNA':'EDNA','CAROL':'CAROL','VICKY':'VICKY',
   'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA'};
+
+const PHOTOS={
+  'DON CARLOS':'img/don-carlos.jpg','EDNA':'img/edna.jpg',
+  'CAROL':'img/carol.jpg','VICKY':'img/vicky.jpg',
+  'JOSE CARLOS':'img/jose-carlos.jpg','JOSE EMILIO':'img/jose-emilio.jpg',
+  'JOSE RODRI':'img/jose-rodri.jpg','INESITA':'img/inesita.jpg',
+};
+function avatar(name,size=40,border='var(--brd)'){
+  const url=PHOTOS[name];
+  if(url) return `<div class="rk-avatar" style="width:${size}px;height:${size}px;border-color:${border};background-image:url('${url}')"></div>`;
+  // Fallback: iniciales
+  const ini=name.split(' ').map(w=>w[0]).join('').slice(0,2);
+  const colors=['#1d4ed8','#7c3aed','#be185d','#0f766e','#b45309','#15803d','#c2410c','#0369a1'];
+  const ci=J.indexOf(name)%colors.length;
+  return `<div class="rk-avatar rk-avatar-ini" style="width:${size}px;height:${size}px;border-color:${border};background:${colors[ci]}">${ini}</div>`;
+}
 
 // ═══ COUNTRY CODES (flagcdn.com) ═══
 const CC={
@@ -573,7 +595,7 @@ function renderRanking(){
   let list='<div class="rank-list">';
   sorted.slice(3).forEach((j,i)=>{
     const q=ganancias[j],ac=aciertos[j];
-    list+=`<div class="rank-row"><div class="rk-pos">${i+4}</div><div class="rk-name">${j}</div><div class="rk-stats"><div class="rk-ac">${ac} acierto${ac!==1?'s':''}</div><div class="rk-q">Q${q%1===0?q:q.toFixed(2)}</div></div></div>`;
+    list+=`<div class="rank-row"><div class="rk-pos">${i+4}</div>${avatar(j,40)}<div class="rk-name">${j}</div><div class="rk-stats"><div class="rk-ac">${ac} acierto${ac!==1?'s':''}</div><div class="rk-q">Q${q%1===0?q:q.toFixed(2)}</div></div></div>`;
   });
   list+='</div>';
   document.getElementById('view-ranking').innerHTML=`
