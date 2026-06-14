@@ -479,35 +479,35 @@ function renderCard(p,fondo,ganadores){
     </div>`;
   }
 
-  let chipsHtml='';
-  if(hasPreds){
-    chipsHtml='<div class="chips-wrap">';
-    J.forEach(j=>{
-      const pr=preds[j],key=j.replace(/ /g,'_');
-      const isEditingThis=editChip&&editChip.pid===pid&&editChip.player===j;
-      const won=res&&pr&&pr[0]===res[0]&&pr[1]===res[1];
-      if(isEditingThis){
-        chipsHtml+=`<div class="chip chip-editing"><div class="chip-name">${SHORT[j]}</div>
-          <div class="chip-edit-row">
-            <input id="cl-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[0]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
-            <span class="cie-sep">-</span>
-            <input id="cv-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[1]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
-            <button class="cie-ok" onclick="saveChip(${pid},'${j}')">&#10003;</button>
-            ${pr?`<button class="cie-del" onclick="delChip(${pid},'${j}')">&#128465;</button>`:''}
-          </div></div>`;
-      }else if(!pr){
-        chipsHtml+=`<div class="chip no-pred" onclick="startChipEdit(${pid},'${j}')"><div class="chip-name">${SHORT[j]}</div><div class="chip-score">&#8212;</div><div class="chip-edit-hint">+ pred</div></div>`;
-      }else{
-        chipsHtml+=`<div class="chip${won?' win':''}" onclick="startChipEdit(${pid},'${j}')">
-          <div class="chip-name">${SHORT[j]}</div><div class="chip-score">${pr[0]}-${pr[1]}</div>
-          ${won?"":`<div class="chip-edit-hint">&#9999;&#65039;</div>`}
-        </div>`;
-      }
-    });
-    chipsHtml+='</div>';
-  }else{
-    chipsHtml=`<div class="no-preds">Sin predicciones &mdash; toca una ficha para agregar</div>`;
-  }
+  // Siempre mostrar las 8 fichas (con o sin prediccion)
+  let chipsHtml='<div class="chips-wrap">';
+  J.forEach(j=>{
+    const pr=preds[j],key=j.replace(/ /g,'_');
+    const isEditingThis=editChip&&editChip.pid===pid&&editChip.player===j;
+    const won=res&&pr&&pr[0]===res[0]&&pr[1]===res[1];
+    if(isEditingThis){
+      chipsHtml+=`<div class="chip chip-editing"><div class="chip-name">${SHORT[j]}</div>
+        <div class="chip-edit-row">
+          <input id="cl-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[0]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
+          <span class="cie-sep">-</span>
+          <input id="cv-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[1]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
+          <button class="cie-ok" onclick="saveChip(${pid},'${j}')">&#10003;</button>
+          ${pr?`<button class="cie-del" onclick="delChip(${pid},'${j}')">&#128465;</button>`:''}        </div></div>`;
+    }else if(!pr){
+      chipsHtml+=`<div class="chip no-pred" onclick="startChipEdit(${pid},'${j}')">
+        <div class="chip-name">${SHORT[j]}</div>
+        <div class="chip-score">&#8212;</div>
+        <div class="chip-edit-hint">+ pred</div>
+      </div>`;
+    }else{
+      chipsHtml+=`<div class="chip${won?' win':''}" onclick="startChipEdit(${pid},'${j}')">
+        <div class="chip-name">${SHORT[j]}</div>
+        <div class="chip-score">${pr[0]}-${pr[1]}</div>
+        <div class="chip-edit-hint">${won?'':'&#9999;&#65039;'}</div>
+      </div>`;
+    }
+  });
+  chipsHtml+='</div>';
   const winBar=wins.length?`<div class="winner-bar">Gan&oacute;: <strong>${wins.join(', ')}</strong></div>`:'';
 
   return `<div id="mc-${pid}" class="mc${isEditing?' editing':''}">
