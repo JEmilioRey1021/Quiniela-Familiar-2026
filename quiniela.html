@@ -374,8 +374,14 @@ let state={resultados:{},predicciones:{}};
 let editScore=null,editChip=null,saving=false;
 
 async function loadState(){
-  try{const r=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY}});const d=await r.json();state=d.record;}
-  catch(e){console.error('Load:',e);}
+  try{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),6000);
+    const r=await fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY},signal:ctrl.signal});
+    clearTimeout(t);
+    const d=await r.json();
+    if(d.record) state=d.record;
+  }catch(e){console.error('Load:',e.message);}
 }
 async function saveState(){
   if(saving)return;saving=true;setSyncBadge('saving','&#128257; Guardando...');
@@ -596,10 +602,16 @@ function scrollToNext(){
 function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();}
 
 async function init(){
-  await loadState();
-  document.getElementById('loadingScreen').classList.add('hidden');
-  renderAll();
-  setInterval(async()=>{await loadState();if(!editScore&&!editChip)renderAll();},60000);
+  try{ await loadState(); }
+  catch(e){ console.error('Init error:',e); }
+  finally{
+    document.getElementById('loadingScreen').classList.add('hidden');
+    renderAll();
+  }
+  setInterval(async()=>{
+    try{ await loadState(); if(!editScore&&!editChip)renderAll(); }
+    catch(e){ console.error('Refresh error:',e); }
+  },60000);
 }
 init();
 </script>
