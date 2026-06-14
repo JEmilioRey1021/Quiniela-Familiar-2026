@@ -65,18 +65,10 @@ input{font-family:var(--ui)}
   color:var(--t3);background:transparent;border-bottom:3px solid transparent;text-transform:uppercase}
 .tab.on{color:#4ade80;border-bottom-color:#4ade80}
 
-.phase-tabs{display:flex;gap:8px;padding:12px 14px 10px;overflow-x:auto;
-  position:sticky;top:146px;z-index:297;
-  background:var(--bg);border-bottom:1px solid var(--brd);}
-.phase-tabs::-webkit-scrollbar{height:0}
-.ptab{flex-shrink:0;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:800;
-  background:var(--card);color:var(--t3);border:1.5px solid var(--brd);white-space:nowrap;transition:all .2s;}
-.ptab.on{background:var(--gm);color:#fff;border-color:var(--gm);box-shadow:0 2px 12px rgba(21,128,61,.4)}
 
-.view{display:none;padding:0 0 90px}
+.view{display:none}
 .view.on{display:block}
-.phase-section{display:none;padding:12px 14px}
-.phase-section.on{display:block}
+#partidos-list{padding:12px 14px 90px}
 
 .group-section{margin-bottom:20px}
 .group-header{display:flex;align-items:center;gap:10px;padding:10px 0 8px;margin-bottom:10px;border-bottom:1px solid var(--brd);}
@@ -142,7 +134,7 @@ input{font-family:var(--ui)}
   border-color:var(--gold);box-shadow:0 3px 10px rgba(245,158,11,.2);}
 .chip.no-pred{opacity:.3}
 .chip.chip-editing{min-width:106px;border-color:var(--gm);background:rgba(21,128,61,.1);cursor:default}
-.chip-name{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:5px;white-space:nowrap}
+.chip-name{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#fff;margin-bottom:5px;white-space:nowrap}
 .win .chip-name{color:var(--goldd)}
 .chip-score{font-family:var(--sport);font-size:17px;color:var(--t1);letter-spacing:1px}
 .win .chip-score{color:var(--goldd)}
@@ -197,6 +189,14 @@ input{font-family:var(--ui)}
   font-size:11px;font-weight:700;border:1px solid var(--brd);
   display:inline-block;
 }
+.day-group{margin-bottom:8px}
+.day-header{
+  font-size:11px;font-weight:800;text-transform:uppercase;
+  letter-spacing:1.5px;color:var(--t3);
+  padding:16px 0 8px;border-bottom:1px solid var(--brd);
+  margin-bottom:10px;display:flex;align-items:center;gap:10px;
+}
+.day-header::before,.day-header::after{content:'';flex:1;height:1px;background:var(--brd)}
 </style>
 </head>
 <body>
@@ -232,20 +232,7 @@ input{font-family:var(--ui)}
 </div>
 
 <div id="view-partidos" class="view on">
-  <div class="phase-tabs" id="phaseTabs">
-    <button class="ptab on" onclick="showPhase('grupos',this)">Fase de Grupos</button>
-    <button class="ptab" onclick="showPhase('r32',this)">Ronda de 32</button>
-    <button class="ptab" onclick="showPhase('r16',this)">Octavos</button>
-    <button class="ptab" onclick="showPhase('qf',this)">Cuartos</button>
-    <button class="ptab" onclick="showPhase('sf',this)">Semis</button>
-    <button class="ptab" onclick="showPhase('final',this)">Final</button>
-  </div>
-  <div id="phase-grupos" class="phase-section on"></div>
-  <div id="phase-r32"    class="phase-section"></div>
-  <div id="phase-r16"    class="phase-section"></div>
-  <div id="phase-qf"     class="phase-section"></div>
-  <div id="phase-sf"     class="phase-section"></div>
-  <div id="phase-final"  class="phase-section"></div>
+  <div id="partidos-list"></div>
 </div>
 <div id="view-ranking" class="view"></div>
 
@@ -403,7 +390,7 @@ async function loadState(){
       localStorage.setItem('q26bk',JSON.stringify(state)); // backup local
     }
   }catch(e){
-    console.warn('JSONBin no disponible:',e.message);
+    // fetch silenciado
     const bk=localStorage.getItem('q26bk');
     if(bk){ state=JSON.parse(bk); console.log('Usando datos locales'); }
   }
@@ -426,7 +413,7 @@ async function saveState(){
       setTimeout(()=>setSyncBadge('','Live'),3000);
     }
   }catch(e){
-    console.warn('Sync fallo, guardado local:',e.message);
+    // sync silenciado
     setSyncBadge('error','Solo local');
     setTimeout(()=>setSyncBadge('','Live'),3000);
   }
@@ -541,46 +528,23 @@ function renderCard(p,fondo,ganadores){
 }
 
 function renderPartidos(){
-  const{fondo,ganadores}=calcFondos();const sy=window.scrollY;
-
-  // GRUPOS: group by Grupo A, B, ...
-  const groupNames=[...new Set(PARTIDOS.filter(p=>!p.fase).map(p=>p.g))];
-  let gruposHtml='';
-  for(const g of groupNames){
-    const ms=PARTIDOS.filter(p=>p.g===g);
-    const done=ms.filter(p=>state.resultados[p.id]).length;
-    gruposHtml+=`<div class="group-section">
-      <div class="group-header"><span class="gbadge gb-grupo">${g}</span><span class="group-count">${done}/${ms.length} jugados</span></div>
-      ${ms.map(p=>renderCard(p,fondo,ganadores)).join('')}
-    </div>`;
+  const{fondo,ganadores}=calcFondos();
+  const sy=window.scrollY;
+  let html='';let lastDay='';
+  for(const p of PARTIDOS){
+    if(p.d!==lastDay){
+      if(lastDay) html+='</div>';
+      html+=`<div class="day-group"><div class="day-header">${fmtD(p.d)}</div>`;
+      lastDay=p.d;
+    }
+    html+=renderCard(p,fondo,ganadores);
   }
-  document.getElementById('phase-grupos').innerHTML=gruposHtml;
-
-  // ELIMINATORIAS
-  const phases=[
-    {id:'r32',label:'Ronda de 32',cls:'gb-round',gval:'R32'},
-    {id:'r16',label:'Octavos de Final',cls:'gb-round',gval:'R16'},
-    {id:'qf', label:'Cuartos de Final',cls:'gb-round',gval:'Cuartos'},
-    {id:'sf', label:'Semifinales',cls:'gb-round',gval:'Semis'},
-    {id:'final',label:'3er Lugar &amp; Gran Final &#127942;',cls:'gb-final',gvals:['3er Lugar','FINAL']},
-  ];
-  for(const ph of phases){
-    const ms=ph.gvals?PARTIDOS.filter(p=>ph.gvals.includes(p.g)):PARTIDOS.filter(p=>p.g===ph.gval);
-    const done=ms.filter(p=>state.resultados[p.id]).length;
-    document.getElementById('phase-'+ph.id).innerHTML=`<div class="group-section">
-      <div class="group-header"><span class="gbadge ${ph.cls}">${ph.label}</span><span class="group-count">${done}/${ms.length} jugados</span></div>
-      ${ms.map(p=>renderCard(p,fondo,ganadores)).join('')}
-    </div>`;
-  }
+  if(lastDay) html+='</div>';
+  document.getElementById('partidos-list').innerHTML=html;
   window.scrollTo(0,sy);
 }
 
-function showPhase(phase,btn){
-  document.querySelectorAll('.phase-section').forEach(s=>s.classList.remove('on'));
-  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
-  document.getElementById('phase-'+phase).classList.add('on');
-  btn.classList.add('on');
-}
+
 
 function renderRanking(){
   const{ganancias,acumulado}=calcFondos();const aciertos={};J.forEach(j=>aciertos[j]=0);
@@ -623,23 +587,20 @@ function showTab(name,btn){
 }
 
 function scrollToNext(){
-  if(!document.getElementById('view-partidos').classList.contains('on'))showTab('partidos',document.querySelectorAll('.tab')[0]);
-  const next=PARTIDOS.find(p=>!state.resultados[p.id]&&Object.keys(state.predicciones[p.id]||{}).length>0)||PARTIDOS.find(p=>!state.resultados[p.id]);
+  if(!document.getElementById('view-partidos').classList.contains('on'))
+    showTab('partidos',document.querySelectorAll('.tab')[0]);
+  const next=PARTIDOS.find(p=>!state.resultados[p.id]&&Object.keys(state.predicciones[p.id]||{}).length>0)
+           ||PARTIDOS.find(p=>!state.resultados[p.id]);
   if(!next)return;
-  const g=next.g,fase=next.fase;
-  let phaseId='grupos';
-  if(fase==='elim'){if(g==='R32')phaseId='r32';else if(g==='R16')phaseId='r16';else if(g==='Cuartos')phaseId='qf';else if(g==='Semis')phaseId='sf';else phaseId='final';}
-  const phaseIds=['grupos','r32','r16','qf','sf','final'];
-  showPhase(phaseId,document.querySelectorAll('.ptab')[phaseIds.indexOf(phaseId)]);
   setTimeout(()=>{
     const el=document.getElementById('mc-'+next.id);
     if(el){
-      window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-220,behavior:'smooth'});
+      window.scrollTo({top:el.getBoundingClientRect().top+window.scrollY-160,behavior:'smooth'});
       el.style.transition='box-shadow .2s';
       el.style.boxShadow='0 0 0 3px var(--gold),0 4px 20px rgba(245,158,11,.4)';
       setTimeout(()=>{el.style.boxShadow='';},1400);
     }
-  },100);
+  },80);
 }
 
 function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();}
