@@ -261,7 +261,10 @@ const CC={
 function flagUrl(name){const cc=CC[name];return cc?`https://flagcdn.com/w80/${cc}.png`:'';}
 function teamBlock(name){
   const url=flagUrl(name);
-  const bg=url?`<div class="team-flag-bg" style="background-image:url('${url}
+  const bg=url?`<div class="team-flag-bg" style="background-image:url('${url}')"></div>`:'';
+  const img=url?`<img class="team-flag-img" src="${url}" alt="${name}" loading="lazy">`:'<div style="height:36px"></div>';
+  return `<div class="team">${bg}${img}<div class="team-name">${name}</div></div>`;
+}
 
 const PARTIDOS=[
   {id:1,e1:'MÉXICO',e2:'SUDÁFRICA',d:'2026-06-11',h:'15:00',g:'Grupo A'},
