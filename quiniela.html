@@ -251,7 +251,7 @@ input{font-family:var(--ui)}
 
 <script>
 const BIN_ID  = '6a2de180f5f4af5e29edbd6f';
-const API_KEY = '$2a$10$q5JfVtz1yTNGIS4VRogp4uiIAYBk.UPrvKzV6/qJqXsZIOIIMylSO';
+const API_KEY = '$2a$10$tDMORyUcsXs7UPLvfgMSiu1w5sADeBjGT49mnGU2yFoFDeq.gvtHy';
 const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 
 const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA'];
@@ -398,15 +398,38 @@ async function loadState(){
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),7000))
     ]);
     const d=await r.json();
-    if(d&&d.record) state=d.record;
-  }catch(e){console.error('Load:',e.message);}
+    if(d&&d.record){
+      state=d.record;
+      localStorage.setItem('q26bk',JSON.stringify(state)); // backup local
+    }
+  }catch(e){
+    console.warn('JSONBin no disponible:',e.message);
+    const bk=localStorage.getItem('q26bk');
+    if(bk){ state=JSON.parse(bk); console.log('Usando datos locales'); }
+  }
 }
 async function saveState(){
+  // Siempre guardar local primero (instantaneo)
+  localStorage.setItem('q26bk',JSON.stringify(state));
+  // Intentar sincronizar con JSONBin
   if(saving)return;saving=true;setSyncBadge('saving','Guardando...');
   try{
-    await fetch(BIN_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},body:JSON.stringify(state)});
-    setSyncBadge('saved','Guardado');setTimeout(()=>setSyncBadge('','Live'),2500);
-  }catch(e){setSyncBadge('error','Error');setTimeout(()=>setSyncBadge('','Live'),3000);}
+    const r=await Promise.race([
+      fetch(BIN_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},body:JSON.stringify(state)}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),7000))
+    ]);
+    if(r.ok){
+      setSyncBadge('saved','Guardado');
+      setTimeout(()=>setSyncBadge('','Live'),2500);
+    } else {
+      setSyncBadge('error','Guardado local');
+      setTimeout(()=>setSyncBadge('','Live'),3000);
+    }
+  }catch(e){
+    console.warn('Sync fallo, guardado local:',e.message);
+    setSyncBadge('error','Solo local');
+    setTimeout(()=>setSyncBadge('','Live'),3000);
+  }
   saving=false;
 }
 function setSyncBadge(cls,txt){const b=document.getElementById('syncBadge');b.className='sync-badge'+(cls?' '+cls:'');b.innerHTML=txt;}
