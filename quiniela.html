@@ -228,6 +228,13 @@ input{font-family:var(--ui)}
 .ptab.on{background:var(--gm);color:#fff;border-color:var(--gm);box-shadow:0 2px 12px rgba(21,128,61,.4)}
 .phase-section{display:none;padding:12px 14px 90px}
 .phase-section.on{display:block}
+
+.mc-live{font-size:10px;font-weight:800;color:#4ade80;display:flex;align-items:center;gap:5px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+.chip.locked{cursor:default;opacity:.75}
+.chip.locked:hover{border-color:var(--brd);background:rgba(255,255,255,.04)}
+.chip-locked-hint{font-size:8px;color:var(--t4);margin-top:3px}
 </style>
 </head>
 <body>
@@ -496,6 +503,13 @@ function calcFondos(){
 const DS=['dom','lun','mar','mie','jue','vie','sab'],MS=['ene','feb','mar','abr','may','jun','jul'];
 function fmtD(d){const dt=new Date(d+'T12:00:00');return DS[dt.getDay()]+' '+dt.getDate()+' '+MS[dt.getMonth()];}
 
+function matchStarted(p){
+  // Compara hora actual con hora de inicio del partido (hora Guatemala UTC-6)
+  const now=new Date();
+  const kickoff=new Date(p.d+'T'+p.h+':00');
+  return now>=kickoff;
+}
+
 function startScoreEdit(pid){editScore=pid;editChip=null;renderAll();setTimeout(()=>{const el=document.getElementById('sl-'+pid);if(el){el.focus();el.select();}},80);}
 function saveScore(pid){
   const l=document.getElementById('sl-'+pid)?.value,v=document.getElementById('sv-'+pid)?.value;
@@ -504,7 +518,10 @@ function saveScore(pid){
 }
 function delScore(pid){delete state.resultados[pid];editScore=null;saveState();renderAll();}
 function cancelScore(){editScore=null;renderAll();}
-function startChipEdit(pid,player){editChip={pid,player};editScore=null;renderAll();const key=player.replace(/ /g,'_');setTimeout(()=>{const el=document.getElementById('cl-'+pid+'-'+key);if(el){el.focus();el.select();}},80);}
+function startChipEdit(pid,player){
+  const p=PARTIDOS.find(x=>x.id===pid);
+  if(p&&matchStarted(p))return; // bloqueado
+  editChip={pid,player};editScore=null;renderAll();const key=player.replace(/ /g,'_');setTimeout(()=>{const el=document.getElementById('cl-'+pid+'-'+key);if(el){el.focus();el.select();}},80);}
 function saveChip(pid,player){
   const key=player.replace(/ /g,'_');
   const l=document.getElementById('cl-'+pid+'-'+key)?.value,v=document.getElementById('cv-'+pid+'-'+key)?.value;
@@ -518,17 +535,21 @@ function onChipKey(e,pid,player){if(e.key==='Enter')saveChip(pid,player);if(e.ke
 
 function renderCard(p,fondo,ganadores){
   const res=state.resultados[p.id],preds=state.predicciones[p.id]||{};
+  const started=matchStarted(p);
   const hasPreds=Object.keys(preds).length>0,wins=ganadores[p.id]||[],f=fondo[p.id],pid=p.id;
   const isEditingScore=(editScore===pid),isEditing=isEditingScore||(editChip&&editChip.pid===pid);
   const potBadge=(!res&&f)?`<span class="pot-badge">Q${f}</span>`:'';
   let statusHtml;
-  if(!res){
+  if(!res && !started){
     statusHtml=`<span class="mc-pend">Pendiente</span>`;
+  }else if(!res && started){
+    statusHtml=`<span class="mc-live"><span class="live-dot"></span>En juego</span>`;
   }else if(wins.length>0){
     const each=f/wins.length;
     const qs=each%1===0?each:each.toFixed(2);
     const names=wins.join(', ');
-    statusHtml=`<span class="mc-win">${names} &mdash; Q${qs}</span>`;
+    const total=f;
+    statusHtml=`<span class="mc-win">${names} &mdash; Q${qs} c/u${wins.length>1?' (bolsa Q'+total+')':''}</span>`;
   }else{
     statusHtml=`<span class="mc-done">Terminado &mdash; nadie acert&oacute;</span>`;
   }
@@ -574,17 +595,35 @@ function renderCard(p,fondo,ganadores){
           <button class="cie-ok" onclick="saveChip(${pid},'${j}')">&#10003;</button>
           ${pr?`<button class="cie-del" onclick="delChip(${pid},'${j}')">&#128465;</button>`:''}        </div></div>`;
     }else if(!pr){
-      chipsHtml+=`<div class="chip no-pred" onclick="startChipEdit(${pid},'${j}')">
-        <div class="chip-name">${SHORT[j]}</div>
-        <div class="chip-score">&#8212;</div>
-        <div class="chip-edit-hint">+ pred</div>
-      </div>`;
+      if(started){
+        // Partido iniciado: no se puede agregar prediccion
+        chipsHtml+=`<div class="chip no-pred locked">
+          <div class="chip-name">${SHORT[j]}</div>
+          <div class="chip-score">&#8212;</div>
+          <div class="chip-locked-hint">cerrado</div>
+        </div>`;
+      }else{
+        chipsHtml+=`<div class="chip no-pred" onclick="startChipEdit(${pid},'${j}')">
+          <div class="chip-name">${SHORT[j]}</div>
+          <div class="chip-score">&#8212;</div>
+          <div class="chip-edit-hint">+ pred</div>
+        </div>`;
+      }
     }else{
-      chipsHtml+=`<div class="chip${won?' win':''}" onclick="startChipEdit(${pid},'${j}')">
-        <div class="chip-name">${SHORT[j]}</div>
-        <div class="chip-score">${pr[0]}-${pr[1]}</div>
-        <div class="chip-edit-hint">${won?'':'&#9999;&#65039;'}</div>
-      </div>`;
+      if(started){
+        // Partido iniciado: prediccion de solo lectura
+        chipsHtml+=`<div class="chip${won?' win':' locked'}" style="cursor:default">
+          <div class="chip-name">${SHORT[j]}</div>
+          <div class="chip-score">${pr[0]}-${pr[1]}</div>
+          ${won?`<div class="chip-crown">&#11088;</div>`:`<div class="chip-locked-hint">cerrado</div>`}
+        </div>`;
+      }else{
+        chipsHtml+=`<div class="chip${won?' win':''}" onclick="startChipEdit(${pid},'${j}')">
+          <div class="chip-name">${SHORT[j]}</div>
+          <div class="chip-score">${pr[0]}-${pr[1]}</div>
+          <div class="chip-edit-hint">${won?'':'&#9999;&#65039;'}</div>
+        </div>`;
+      }
     }
   });
   chipsHtml+='</div>';
