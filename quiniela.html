@@ -285,15 +285,15 @@ const BIN_ID  = '6a2de180f5f4af5e29edbd6f';
 const API_KEY = '$2a$10$tDMORyUcsXs7UPLvfgMSiu1w5sADeBjGT49mnGU2yFoFDeq.gvtHy';
 const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 
-const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA'];
+const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA','FATI'];
 const SHORT={'DON CARLOS':'DON C.','EDNA':'EDNA','CAROL':'CAROL','VICKY':'VICKY',
-  'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA'};
+  'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA','FATI':'FATI'};
 
 const PHOTOS={
   'DON CARLOS':'img/don-carlos.png','EDNA':'img/edna.png',
   'CAROL':'img/carol.png','VICKY':'img/vicky.png',
   'JOSE CARLOS':'img/jose-carlos.png','JOSE EMILIO':'img/jose-emilio.png',
-  'JOSE RODRI':'img/jose-rodri.png','INESITA':'img/inesita.png',
+  'JOSE RODRI':'img/jose-rodri.png','INESITA':'img/inesita.png','FATI':'img/fati.png',
 };
 function avatar(name,size=40,border='var(--brd)'){
   const url=PHOTOS[name];
@@ -485,7 +485,7 @@ function calcFondos(){
   let acum=0;const fondo={},ganadores={},ganancias={};J.forEach(j=>ganancias[j]=0);
   for(const p of PARTIDOS){
     const preds=state.predicciones[p.id]||{};if(!Object.keys(preds).length)continue;
-    const pot=acum+(p.fase==='elim'?40:8);fondo[p.id]=pot;
+    const pot=acum+(p.fase==='elim'?45:9);fondo[p.id]=pot;
     const res=state.resultados[p.id];
     if(res){const wins=J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
       ganadores[p.id]=wins;if(wins.length){const e=pot/wins.length;wins.forEach(j=>ganancias[j]+=e);acum=0;}else acum=pot;}
