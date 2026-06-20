@@ -266,7 +266,7 @@ input{font-family:var(--ui)}
 
 <div class="tabs">
   <button class="tab on" onclick="showTab('partidos',this)">&#127967; Partidos</button>
-  <button class="tab" onclick="showTab('ranking',this)"> Ranking</button>
+  <button class="tab" onclick="showTab('ranking',this)">&#127942; Ranking</button>
 </div>
 
 <div id="view-partidos" class="view on">
@@ -443,6 +443,7 @@ const PARTIDOS=[
 ];
 
 let state={resultados:{},predicciones:{}};
+let pendingSave=false;
 let editScore=null,editChip=null,saving=false;
 
 async function loadState(){
@@ -453,38 +454,82 @@ async function loadState(){
     ]);
     const d=await r.json();
     if(d&&d.record){
-      state=d.record;
-      localStorage.setItem('q26bk',JSON.stringify(state)); // backup local
+      // Mezclar nube con local para no perder cambios recientes
+      const bk=localStorage.getItem('q26bk');
+      const local=bk?JSON.parse(bk):{resultados:{},predicciones:{}};
+      state=mergeStates(local, d.record);
+      localStorage.setItem('q26bk',JSON.stringify(state));
     }
   }catch(e){
-    // fetch silenciado
     const bk=localStorage.getItem('q26bk');
-    if(bk){ state=JSON.parse(bk); console.log('Usando datos locales'); }
+    if(bk) state=JSON.parse(bk);
   }
 }
+// Mezcla dos estados para no perder datos de nadie
+function mergeStates(local, cloud){
+  const merged={
+    resultados:{...(cloud.resultados||{}),...(local.resultados||{})},
+    predicciones:{}
+  };
+  const pids=new Set([
+    ...Object.keys(cloud.predicciones||{}),
+    ...Object.keys(local.predicciones||{})
+  ]);
+  for(const pid of pids){
+    merged.predicciones[pid]={
+      ...(cloud.predicciones[pid]||{}),
+      ...(local.predicciones[pid]||{})
+    };
+  }
+  return merged;
+}
+
 async function saveState(){
-  // Siempre guardar local primero (instantaneo)
+  // 1. Guardar local siempre (instantaneo, sin importar nada)
   localStorage.setItem('q26bk',JSON.stringify(state));
-  // Intentar sincronizar con JSONBin
-  if(saving)return;saving=true;setSyncBadge('saving','Guardando...');
+
+  // 2. Si ya hay un guardado en curso, marcar que hay cambios pendientes y salir
+  if(saving){ pendingSave=true; return; }
+  saving=true; pendingSave=false;
+  setSyncBadge('saving','Guardando...');
+
   try{
-    const r=await Promise.race([
-      fetch(BIN_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},body:JSON.stringify(state)}),
+    // 3. Leer estado actual de la nube
+    const rGet=await Promise.race([
+      fetch(BIN_URL+'/latest',{headers:{'X-Master-Key':API_KEY}}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),5000))
+    ]);
+    const cloudData=await rGet.json();
+    const cloudState=(cloudData&&cloudData.record)||{resultados:{},predicciones:{}};
+
+    // 4. Mezclar: nube + cambios locales (nadie pierde sus datos)
+    const merged=mergeStates(state, cloudState);
+    state=merged;
+    localStorage.setItem('q26bk',JSON.stringify(state));
+
+    // 5. Guardar el estado mezclado en la nube
+    const rPut=await Promise.race([
+      fetch(BIN_URL,{method:'PUT',
+        headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
+        body:JSON.stringify(merged)}),
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),7000))
     ]);
-    if(r.ok){
+
+    if(rPut.ok){
       setSyncBadge('saved','Guardado');
-      setTimeout(()=>setSyncBadge('','Live'),2500);
+      setTimeout(()=>setSyncBadge('','Live'),2000);
     } else {
-      setSyncBadge('error','Guardado local');
+      setSyncBadge('error','Reintentando...');
       setTimeout(()=>setSyncBadge('','Live'),3000);
     }
   }catch(e){
-    // sync silenciado
     setSyncBadge('error','Solo local');
     setTimeout(()=>setSyncBadge('','Live'),3000);
   }
+
   saving=false;
+  // Si hubo cambios mientras guardabamos, guardar de nuevo
+  if(pendingSave){ setTimeout(saveState,500); }
 }
 function setSyncBadge(cls,txt){const b=document.getElementById('syncBadge');b.className='sync-badge'+(cls?' '+cls:'');b.innerHTML=txt;}
 
@@ -504,13 +549,24 @@ const DS=['dom','lun','mar','mie','jue','vie','sab'],MS=['ene','feb','mar','abr'
 function fmtD(d){const dt=new Date(d+'T12:00:00');return DS[dt.getDay()]+' '+dt.getDate()+' '+MS[dt.getMonth()];}
 
 function matchStarted(p){
-  // Compara hora actual con hora de inicio del partido (hora Guatemala UTC-6)
   const now=new Date();
   const kickoff=new Date(p.d+'T'+p.h+':00');
   return now>=kickoff;
 }
 
-function startScoreEdit(pid){editScore=pid;editChip=null;renderAll();setTimeout(()=>{const el=document.getElementById('sl-'+pid);if(el){el.focus();el.select();}},80);}
+function canEnterResult(p){
+  // Solo se puede ingresar resultado 15 minutos después del inicio
+  const now=new Date();
+  const kickoff=new Date(p.d+'T'+p.h+':00');
+  return now>=new Date(kickoff.getTime()+15*60*1000);
+}
+
+function startScoreEdit(pid){
+  const p=PARTIDOS.find(x=>x.id===pid);
+  if(p&&!canEnterResult(p))return; // bloqueado hasta 15 min después del inicio
+  editScore=pid;editChip=null;renderAll();
+  setTimeout(()=>{const el=document.getElementById('sl-'+pid);if(el){el.focus();el.select();}},80);
+}
 function saveScore(pid){
   const l=document.getElementById('sl-'+pid)?.value,v=document.getElementById('sv-'+pid)?.value;
   if(l!==''&&v!==''&&l!=null&&v!=null)state.resultados[pid]=[parseInt(l),parseInt(v)];
@@ -574,9 +630,14 @@ function renderCard(p,fondo,ganadores){
       <button class="btn-edit-result" onclick="startScoreEdit(${pid})">Editar</button>
     </div>`;
   }else{
+    const canResult=canEnterResult(p);
     scoreHtml=`<div style="text-align:center">
       <div class="vs-txt">VS</div>
-      <button class="btn-add-result" onclick="startScoreEdit(${pid})">+ Ingresar resultado</button>
+      ${canResult
+        ?`<button class="btn-add-result" onclick="startScoreEdit(${pid})">+ Ingresar resultado</button>`
+        :started?`<div style="font-size:11px;color:var(--t3);margin-top:8px;font-weight:600">En juego...</div>`
+                 :`<div style="font-size:10px;color:var(--t4);margin-top:6px">Pendiente</div>`
+      }
     </div>`;
   }
 
@@ -703,7 +764,7 @@ function renderRanking(){
   list+='</div>';
   document.getElementById('view-ranking').innerHTML=`
     <div class="rank-banner">
-      <div><h2>RANKING</h2><p></p></div>
+      <div><h2>RANKING</h2><p>Bolsa acumulada: Q${acumulado} | Mundial 2026</p></div>
     </div>${pod}${list}`;
 }
 
