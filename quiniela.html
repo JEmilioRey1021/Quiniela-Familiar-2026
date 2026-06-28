@@ -235,6 +235,50 @@ input{font-family:var(--ui)}
 .chip.locked{cursor:default;opacity:.75}
 .chip.locked:hover{border-color:var(--brd);background:rgba(255,255,255,.04)}
 .chip-locked-hint{font-size:8px;color:var(--t4);margin-top:3px}
+
+/* ─── BRACKET ─── */
+.bracket-outer{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:12px 14px 90px}
+.bracket-outer::-webkit-scrollbar{height:4px}
+.bracket-outer::-webkit-scrollbar-thumb{background:var(--brd);border-radius:4px}
+.bracket-body{display:flex;align-items:stretch;gap:0;min-width:860px}
+.bracket-hdrs{display:flex;min-width:860px;gap:0;margin-bottom:8px;padding:0 14px}
+.bracket-hdr{font-family:var(--sport);font-size:11px;font-weight:700;letter-spacing:1px;
+  color:var(--t3);text-align:center;text-transform:uppercase;flex-shrink:0}
+/* columns */
+.br-col{display:flex;flex-direction:column;justify-content:space-around;flex-shrink:0}
+.br-col-r32{width:148px}
+.br-col-r16{width:148px}
+.br-col-qf{width:148px}
+.br-col-sf{width:148px}
+.br-col-final{width:148px}
+/* connector columns */
+.br-conn{width:20px;display:flex;flex-direction:column;flex-shrink:0}
+.br-conn-grp{flex:1;display:flex;flex-direction:column}
+.br-conn-top{flex:1;border-right:2px solid var(--brd);border-bottom:2px solid var(--brd);border-radius:0 0 4px 0}
+.br-conn-bot{flex:1;border-right:2px solid var(--brd);border-top:2px solid var(--brd);border-radius:0 4px 0 0}
+/* match cards */
+.bm{background:var(--card);border:1px solid var(--brd);border-radius:8px;overflow:hidden;
+  margin:2px 0;box-shadow:0 1px 6px rgba(0,0,0,.3);min-width:144px}
+.bmt{display:flex;align-items:center;gap:6px;padding:7px 8px;border-bottom:1px solid var(--brd);
+  font-size:11px;font-weight:700;color:var(--t1);min-height:34px}
+.bmt:last-child{border-bottom:none}
+.bmt.bmt-w{background:rgba(245,158,11,.15);color:var(--goldd)}
+.bmt.bmt-w .bm-name{color:var(--goldd)}
+.bm-flag{width:22px;height:15px;object-fit:cover;border-radius:2px;flex-shrink:0}
+.bm-flag-ph{width:22px;height:15px;background:var(--brd);border-radius:2px;flex-shrink:0}
+.bm-name{flex:1;font-size:10px;font-weight:800;letter-spacing:.3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:78px}
+.bm-score{font-family:var(--sport);font-size:13px;color:#fff;margin-left:auto;flex-shrink:0}
+.bmt.bmt-w .bm-score{color:var(--goldd)}
+.bm-tbd .bm-name{color:var(--t4);font-weight:600}
+/* spacer between bracket halves */
+.br-half-div{height:20px;background:transparent}
+/* final special */
+.bm.bm-final{border-color:var(--gold);box-shadow:0 0 12px rgba(245,158,11,.3)}
+.bm.bm-final .bmt.bmt-w{background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.1))}
+/* 3rd place */
+.br-3rd-label{font-size:10px;font-weight:800;color:var(--t3);text-align:center;
+  text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px}
 </style>
 </head>
 <body>
@@ -267,6 +311,7 @@ input{font-family:var(--ui)}
 <div class="tabs">
   <button class="tab on" onclick="showTab('partidos',this)">&#127967; Partidos</button>
   <button class="tab" onclick="showTab('ranking',this)">&#127942; Ranking</button>
+  <button class="tab" onclick="showTab('cuadro',this)">&#9776; Cuadro</button>
 </div>
 
 <div id="view-partidos" class="view on">
@@ -286,6 +331,7 @@ input{font-family:var(--ui)}
   <div id="phase-final"  class="phase-section"></div>
 </div>
 <div id="view-ranking" class="view"></div>
+<div id="view-cuadro" class="view"></div>
 
 <script>
 const BIN_ID  = '6a2de180f5f4af5e29edbd6f';
@@ -876,6 +922,7 @@ function showTab(name,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('view-'+name).classList.add('on');btn.classList.add('on');
   if(name==='ranking')renderRanking();
+  if(name==='cuadro'){document.getElementById('view-cuadro').innerHTML='<div class="bracket-outer">'+renderBracket()+'</div>';}
 }
 
 function scrollToNext(){
@@ -898,6 +945,137 @@ function scrollToNext(){
       setTimeout(()=>{el.style.boxShadow='';},1400);
     }
   },100);
+}
+
+
+// ─── BRACKET ───
+const BRACKET_PARENTS={
+  89:[73,76], 90:[75,78], 91:[77,74], 92:[79,80],
+  93:[82,81], 94:[83,84], 95:[85,88], 96:[86,87],
+  97:[89,90], 98:[91,92], 99:[93,94], 100:[95,96],
+  101:[97,98], 102:[99,100], 104:[101,102],
+};
+// Loser tracking for 3rd place
+function getLoser(id){
+  const res=state.resultados[id];if(!res)return null;
+  const [t1,t2]=getBTeams(id);
+  if(res[0]>res[1])return t2;if(res[1]>res[0])return t1;return null;
+}
+function getBTeams(id){
+  const pars=BRACKET_PARENTS[id];
+  if(!pars){const p=PARTIDOS.find(x=>x.id===id);return p?[p.e1,p.e2]:['?','?'];}
+  return pars.map(pid=>getBWinner(pid)||'–');
+}
+function getBWinner(id){
+  const res=state.resultados[id];if(!res)return null;
+  const [t1,t2]=getBTeams(id);
+  if(res[0]>res[1])return t1;if(res[1]>res[0])return t2;return null;
+}
+function bCard(id,isFinal=false){
+  const [t1,t2]=getBTeams(id);
+  const w=getBWinner(id);
+  const res=state.resultados[id];
+  const u1=flagUrl(t1),u2=flagUrl(t2);
+  const row=(t,u,s,isW)=>{
+    const tbd=t==='–';
+    return `<div class="bmt${isW?' bmt-w':''}${tbd?' bm-tbd':''}">
+      ${u?`<img src="${u}" class="bm-flag">`:`<span class="bm-flag-ph"></span>`}
+      <span class="bm-name">${tbd?'Por def.':t}</span>
+      ${s!==undefined?`<span class="bm-score">${s}</span>`:''}
+    </div>`;
+  };
+  return `<div class="bm${isFinal?' bm-final':''}">
+    ${row(t1,u1,res?res[0]:undefined,w===t1&&w!==null&&w!=='–')}
+    ${row(t2,u2,res?res[1]:undefined,w===t2&&w!==null&&w!=='–')}
+  </div>`;
+}
+function connCol(n){
+  // Creates a connector column with n bracket pair connectors
+  let html='<div class="br-conn">';
+  for(let i=0;i<n;i++) html+=`<div class="br-conn-grp"><div class="br-conn-top"></div><div class="br-conn-bot"></div></div>`;
+  return html+'</div>';
+}
+function renderBracket(){
+  // Header widths: r32=148, conn=20, r16=148, conn=20, qf=148, conn=20, sf=148, conn=20, final=148
+  const colW=148,connW=20;
+  const total=(colW+connW)*4+colW;
+  const rnd=(label,w)=>`<div class="bracket-hdr" style="width:${w}px">${label}</div>`;
+  
+  // TOP HALF: R32[73,76,75,78,77,74,79,80] → R16[89,90,91,92] → QF[97,98] → SF[101]
+  // BOTTOM HALF: R32[82,81,83,84,85,88,86,87] → R16[93,94,95,96] → QF[99,100] → SF[102]
+  // FINAL: 104  3RD: 103 (SF losers)
+  
+  const r32top=[73,76,75,78,77,74,79,80];
+  const r32bot=[82,81,83,84,85,88,86,87];
+  const r16top=[89,90,91,92];
+  const r16bot=[93,94,95,96];
+  
+  // Column renderers
+  const col=(ids,cls,spacer=false)=>{
+    return `<div class="br-col ${cls}">${ids.map((id,i)=>
+      (spacer&&i===ids.length/2)?`<div class="br-half-div"></div>${bCard(id)}`:bCard(id)
+    ).join('')}</div>`;
+  };
+  
+  const sfHtml=`<div class="br-col br-col-sf" style="justify-content:space-around">
+    ${bCard(101)}
+    <div style="height:${colW/2}px"></div>
+    ${bCard(102)}
+  </div>`;
+  
+  const finalHtml=`<div class="br-col br-col-final" style="justify-content:center;gap:12px">
+    <div class="br-3rd-label">3er Lugar</div>
+    ${(()=>{
+      const l1=getLoser(101)||'–';
+      const l2=getLoser(102)||'–';
+      const res=state.resultados[103];
+      const u1=flagUrl(l1),u2=flagUrl(l2);
+      const row=(t,u,s)=>`<div class="bmt ${res&&res[0]>res[1]&&t===l1?' bmt-w':res&&res[1]>res[0]&&t===l2?' bmt-w':''}">
+        ${u?`<img src="${u}" class="bm-flag">`:`<span class="bm-flag-ph"></span>`}
+        <span class="bm-name">${t==='–'?'Por def.':t}</span>
+        ${s!==undefined?`<span class="bm-score">${s}</span>`:''}
+      </div>`;
+      return `<div class="bm">${row(l1,u1,res?res[0]:undefined)}${row(l2,u2,res?res[1]:undefined)}</div>`;
+    })()}
+    <div class="br-3rd-label" style="margin-top:8px">Final</div>
+    ${bCard(104,true)}
+  </div>`;
+  
+  return `
+    <div class="bracket-hdrs" style="min-width:${total}px;margin-bottom:4px">
+      ${rnd('16avos',colW)}${rnd('',connW)}${rnd('8avos',colW)}${rnd('',connW)}
+      ${rnd('4tos',colW)}${rnd('',connW)}${rnd('Semis',colW)}${rnd('',connW)}${rnd('Final',colW)}
+    </div>
+    <div class="bracket-body" style="min-width:${total}px">
+      <!-- R32: top then bottom with mid gap -->
+      <div class="br-col br-col-r32" style="gap:4px">
+        ${r32top.map((id,i)=>`${i>0&&i%2===0?'<div style="height:12px"></div>':''}<div>${bCard(id)}</div>`).join('')}
+        <div style="height:16px"></div>
+        ${r32bot.map((id,i)=>`${i>0&&i%2===0?'<div style="height:12px"></div>':''}<div>${bCard(id)}</div>`).join('')}
+      </div>
+      ${connCol(8)}
+      <!-- R16 -->
+      <div class="br-col br-col-r16" style="gap:4px">
+        ${r16top.map(id=>`<div>${bCard(id)}</div>`).join('')}
+        <div style="height:16px"></div>
+        ${r16bot.map(id=>`<div>${bCard(id)}</div>`).join('')}
+      </div>
+      ${connCol(4)}
+      <!-- QF -->
+      <div class="br-col br-col-qf" style="gap:4px">
+        <div>${bCard(97)}</div>
+        <div>${bCard(98)}</div>
+        <div style="height:16px"></div>
+        <div>${bCard(99)}</div>
+        <div>${bCard(100)}</div>
+      </div>
+      ${connCol(2)}
+      <!-- SF -->
+      ${sfHtml}
+      ${connCol(1)}
+      <!-- Final + 3rd -->
+      ${finalHtml}
+    </div>`;
 }
 
 function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();}
