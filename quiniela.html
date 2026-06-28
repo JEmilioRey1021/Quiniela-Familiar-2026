@@ -292,20 +292,25 @@ const BIN_ID  = '6a2de180f5f4af5e29edbd6f';
 const API_KEY = '$2a$10$tDMORyUcsXs7UPLvfgMSiu1w5sADeBjGT49mnGU2yFoFDeq.gvtHy';
 const BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 
-const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA','FATI'];
+const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE RODRI','INESITA','FATI','JENNY'];
 const SHORT={'DON CARLOS':'DON C.','EDNA':'EDNA','CAROL':'CAROL','VICKY':'VICKY',
-  'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA','FATI':'FATI'};
+  'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA','FATI':'FATI','JENNY':'JENNY'};
 
 // Fati se unió el 16 de junio (Francia vs Senegal en adelante)
 const FATI_START='2026-06-16';
-function matchBase(p){ return p.d<FATI_START?(p.fase==='elim'?40:8):(p.fase==='elim'?45:9); }
-function matchPlayers(p){ return p.d<FATI_START?J.filter(j=>j!=='FATI'):J; }
+// Jenny joins from eliminatorias → 10 players × Q5 = Q50 per elim match
+function matchBase(p){ if(p.fase==='elim')return 50; return p.d<FATI_START?8:9; }
+function matchPlayers(p){
+  if(p.fase==='elim') return J; // todos incluido Fati y Jenny
+  if(p.d<FATI_START) return J.filter(j=>j!=='FATI'&&j!=='JENNY'); // 8 jugadores
+  return J.filter(j=>j!=='JENNY'); // 9 jugadores (sin Jenny)
+}
 
 const PHOTOS={
   'DON CARLOS':'img/don-carlos.png','EDNA':'img/edna.png',
   'CAROL':'img/carol.png','VICKY':'img/vicky.png',
   'JOSE CARLOS':'img/jose-carlos.png','JOSE EMILIO':'img/jose-emilio.png',
-  'JOSE RODRI':'img/jose-rodri.png','INESITA':'img/inesita.png','FATI':'img/fati.png',
+  'JOSE RODRI':'img/jose-rodri.png','INESITA':'img/inesita.png','FATI':'img/fati.png','JENNY':'img/jenny.png',
 };
 function avatar(name,size=40,border='var(--brd)'){
   const url=PHOTOS[name];
@@ -413,22 +418,22 @@ const PARTIDOS=[
   {id:70,e1:'REP. DEL CONGO',e2:'UZBEKISTÁN',d:'2026-06-27',h:'17:30',g:'Grupo K'},
   {id:71,e1:'ARGELIA',e2:'AUSTRIA',d:'2026-06-27',h:'20:00',g:'Grupo J'},
   {id:72,e1:'JORDANIA',e2:'ARGENTINA',d:'2026-06-27',h:'20:00',g:'Grupo J'},
-  {id:73,e1:'Por det.',e2:'Por det.',d:'2026-06-28',h:'15:00',g:'R32',fase:'elim'},
-  {id:74,e1:'Por det.',e2:'Por det.',d:'2026-06-29',h:'13:00',g:'R32',fase:'elim'},
-  {id:75,e1:'Por det.',e2:'Por det.',d:'2026-06-29',h:'16:30',g:'R32',fase:'elim'},
-  {id:76,e1:'Por det.',e2:'Por det.',d:'2026-06-29',h:'21:00',g:'R32',fase:'elim'},
-  {id:77,e1:'Por det.',e2:'Por det.',d:'2026-06-30',h:'13:00',g:'R32',fase:'elim'},
-  {id:78,e1:'Por det.',e2:'Por det.',d:'2026-06-30',h:'17:00',g:'R32',fase:'elim'},
-  {id:79,e1:'Por det.',e2:'Por det.',d:'2026-06-30',h:'21:00',g:'R32',fase:'elim'},
-  {id:80,e1:'Por det.',e2:'Por det.',d:'2026-07-01',h:'12:00',g:'R32',fase:'elim'},
-  {id:81,e1:'Por det.',e2:'Por det.',d:'2026-07-01',h:'16:00',g:'R32',fase:'elim'},
-  {id:82,e1:'Por det.',e2:'Por det.',d:'2026-07-01',h:'20:00',g:'R32',fase:'elim'},
-  {id:83,e1:'Por det.',e2:'Por det.',d:'2026-07-02',h:'15:00',g:'R32',fase:'elim'},
-  {id:84,e1:'Por det.',e2:'Por det.',d:'2026-07-02',h:'19:00',g:'R32',fase:'elim'},
-  {id:85,e1:'Por det.',e2:'Por det.',d:'2026-07-02',h:'23:00',g:'R32',fase:'elim'},
-  {id:86,e1:'Por det.',e2:'Por det.',d:'2026-07-03',h:'14:00',g:'R32',fase:'elim'},
-  {id:87,e1:'Por det.',e2:'Por det.',d:'2026-07-03',h:'18:00',g:'R32',fase:'elim'},
-  {id:88,e1:'Por det.',e2:'Por det.',d:'2026-07-03',h:'21:30',g:'R32',fase:'elim'},
+  {id:73,e1:'SUDÁFRICA',e2:'CANADÁ',d:'2026-06-28',h:'13:00',g:'R32',fase:'elim'},
+  {id:74,e1:'BRASIL',e2:'JAPÓN',d:'2026-06-29',h:'11:00',g:'R32',fase:'elim'},
+  {id:75,e1:'ALEMANIA',e2:'PARAGUAY',d:'2026-06-29',h:'14:30',g:'R32',fase:'elim'},
+  {id:76,e1:'PAÍSES BAJOS',e2:'MARRUECOS',d:'2026-06-29',h:'19:00',g:'R32',fase:'elim'},
+  {id:77,e1:'COSTA DE MARFIL',e2:'NORUEGA',d:'2026-06-30',h:'11:00',g:'R32',fase:'elim'},
+  {id:78,e1:'FRANCIA',e2:'SUECIA',d:'2026-06-30',h:'15:00',g:'R32',fase:'elim'},
+  {id:79,e1:'MÉXICO',e2:'ECUADOR',d:'2026-06-30',h:'19:00',g:'R32',fase:'elim'},
+  {id:80,e1:'INGLATERRA',e2:'REP. DEL CONGO',d:'2026-07-01',h:'10:00',g:'R32',fase:'elim'},
+  {id:81,e1:'BÉLGICA',e2:'SENEGAL',d:'2026-07-01',h:'14:00',g:'R32',fase:'elim'},
+  {id:82,e1:'ESTADOS UNIDOS',e2:'BOSNIA Y HERZEG.',d:'2026-07-01',h:'18:00',g:'R32',fase:'elim'},
+  {id:83,e1:'ESPAÑA',e2:'AUSTRIA',d:'2026-07-02',h:'13:00',g:'R32',fase:'elim'},
+  {id:84,e1:'PORTUGAL',e2:'CROACIA',d:'2026-07-02',h:'17:00',g:'R32',fase:'elim'},
+  {id:85,e1:'SUIZA',e2:'ARGELIA',d:'2026-07-02',h:'21:00',g:'R32',fase:'elim'},
+  {id:86,e1:'AUSTRALIA',e2:'EGIPTO',d:'2026-07-03',h:'12:00',g:'R32',fase:'elim'},
+  {id:87,e1:'ARGENTINA',e2:'CABO VERDE',d:'2026-07-03',h:'16:00',g:'R32',fase:'elim'},
+  {id:88,e1:'COLOMBIA',e2:'GHANA',d:'2026-07-03',h:'19:30',g:'R32',fase:'elim'},
   {id:89,e1:'Por det.',e2:'Por det.',d:'2026-07-04',h:'13:00',g:'R16',fase:'elim'},
   {id:90,e1:'Por det.',e2:'Por det.',d:'2026-07-04',h:'17:00',g:'R16',fase:'elim'},
   {id:91,e1:'Por det.',e2:'Por det.',d:'2026-07-05',h:'16:00',g:'R16',fase:'elim'},
@@ -730,7 +735,7 @@ function renderCard(p,fondo,ganadores,pagos){
   }
 
   // Mostrar fichas: Fati no participa en partidos anteriores al 16-jun
-  const displayPlayers=p.d<FATI_START?J.filter(j=>j!=='FATI'):J;
+  const displayPlayers=p.fase==='elim'?J:(p.d<FATI_START?J.filter(j=>j!=='FATI'&&j!=='JENNY'):J.filter(j=>j!=='JENNY'));
   let chipsHtml='<div class="chips-wrap">';
   displayPlayers.forEach(j=>{
     const pr=preds[j],key=j.replace(/ /g,'_');
