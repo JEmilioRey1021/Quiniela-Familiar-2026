@@ -296,6 +296,11 @@ const J=['DON CARLOS','EDNA','CAROL','VICKY','JOSE CARLOS','JOSE EMILIO','JOSE R
 const SHORT={'DON CARLOS':'DON C.','EDNA':'EDNA','CAROL':'CAROL','VICKY':'VICKY',
   'JOSE CARLOS':'J.CARLOS','JOSE EMILIO':'J.EMILIO','JOSE RODRI':'J.RODRI','INESITA':'INESITA','FATI':'FATI'};
 
+// Fati se unió el 16 de junio (Francia vs Senegal en adelante)
+const FATI_START='2026-06-16';
+function matchBase(p){ return p.d<FATI_START?(p.fase==='elim'?40:8):(p.fase==='elim'?45:9); }
+function matchPlayers(p){ return p.d<FATI_START?J.filter(j=>j!=='FATI'):J; }
+
 const PHOTOS={
   'DON CARLOS':'img/don-carlos.png','EDNA':'img/edna.png',
   'CAROL':'img/carol.png','VICKY':'img/vicky.png',
@@ -551,19 +556,19 @@ function calcFondos(){
     const slot=rawSlot.filter(m=>Object.keys(state.predicciones[m.id]||{}).length>0);
     if(!slot.length) continue;
 
-    const totalBase=slot.reduce((s,m)=>s+(m.fase==='elim'?45:9),0);
+    const totalBase=slot.reduce((s,m)=>s+matchBase(m),0);
     const combinedPot=acum+totalBase;
 
     if(slot.length===1){
       // ── Partido único ──
       const m=slot[0];
-      const base=m.fase==='elim'?45:9;
+      const base=matchBase(m);
       const pot=acum+base;
       fondo[m.id]=pot;
       const res=state.resultados[m.id];
       if(res){
         const preds=state.predicciones[m.id]||{};
-        const wins=J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
+        const wins=matchPlayers(m).filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
         ganadores[m.id]=wins;
         if(wins.length){
           const e=pot/wins.length;pagos[m.id]=e;
@@ -585,7 +590,7 @@ function calcFondos(){
         const matchWins=slot.map(m=>{
           const preds=state.predicciones[m.id]||{};
           const res=state.resultados[m.id];
-          return J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
+          return matchPlayers(m).filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
         });
         slot.forEach((m,idx)=>ganadores[m.id]=matchWins[idx]);
 
@@ -611,11 +616,11 @@ function calcFondos(){
 
           // El ganador se lleva: acum + bases de partidos hasta el primero que ganó
           let winPot=acum;
-          for(let k=0;k<=firstIdx;k++) winPot+=slot[k].fase==='elim'?45:9;
+          for(let k=0;k<=firstIdx;k++) winPot+=matchBase(slot[k]);
 
           // Partidos después del ganador que no tuvieron ganador: acumulan
           let newAccum=0;
-          for(let k=firstIdx+1;k<slot.length;k++) newAccum+=slot[k].fase==='elim'?45:9;
+          for(let k=firstIdx+1;k<slot.length;k++) newAccum+=matchBase(slot[k]);
 
           const winners=matchWins[firstIdx];
           const per=winPot/winners.length;
@@ -724,9 +729,10 @@ function renderCard(p,fondo,ganadores,pagos){
     </div>`;
   }
 
-  // Siempre mostrar las 8 fichas (con o sin prediccion)
+  // Mostrar fichas: Fati no participa en partidos anteriores al 16-jun
+  const displayPlayers=p.d<FATI_START?J.filter(j=>j!=='FATI'):J;
   let chipsHtml='<div class="chips-wrap">';
-  J.forEach(j=>{
+  displayPlayers.forEach(j=>{
     const pr=preds[j],key=j.replace(/ /g,'_');
     const isEditingThis=editChip&&editChip.pid===pid&&editChip.player===j;
     const won=res&&pr&&pr[0]===res[0]&&pr[1]===res[1];
@@ -785,7 +791,8 @@ function renderPartidos(){
   const sy=window.scrollY;
 
   // Grupos: todos en orden cronológico (sin subdivisión por grupo)
-  const grupoMatches=PARTIDOS.filter(p=>!p.fase);
+  // Excluir partidos 1 y 2 (México-Sudáfrica y Corea-R.Checa: sin apuestas)
+  const grupoMatches=PARTIDOS.filter(p=>!p.fase&&p.id!==1&&p.id!==2);
   document.getElementById('phase-grupos').innerHTML=
     grupoMatches.map(p=>renderCard(p,fondo,ganadores,pagos)).join('');
 
