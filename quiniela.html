@@ -534,15 +534,99 @@ async function saveState(){
 function setSyncBadge(cls,txt){const b=document.getElementById('syncBadge');b.className='sync-badge'+(cls?' '+cls:'');b.innerHTML=txt;}
 
 function calcFondos(){
-  let acum=0;const fondo={},ganadores={},ganancias={};J.forEach(j=>ganancias[j]=0);
-  for(const p of PARTIDOS){
-    const preds=state.predicciones[p.id]||{};if(!Object.keys(preds).length)continue;
-    const pot=acum+(p.fase==='elim'?45:9);fondo[p.id]=pot;
-    const res=state.resultados[p.id];
-    if(res){const wins=J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
-      ganadores[p.id]=wins;if(wins.length){const e=pot/wins.length;wins.forEach(j=>ganancias[j]+=e);acum=0;}else acum=pot;}
+  let acum=0;
+  const fondo={},ganadores={},ganancias={},pagos={};
+  J.forEach(j=>ganancias[j]=0);
+
+  // Agrupar partidos por fecha+hora para detectar simultáneos
+  let i=0;
+  while(i<PARTIDOS.length){
+    const p=PARTIDOS[i];
+    let jj=i+1;
+    while(jj<PARTIDOS.length && PARTIDOS[jj].d===p.d && PARTIDOS[jj].h===p.h) jj++;
+    const rawSlot=PARTIDOS.slice(i,jj);
+    i=jj;
+
+    // Solo partidos con predicciones
+    const slot=rawSlot.filter(m=>Object.keys(state.predicciones[m.id]||{}).length>0);
+    if(!slot.length) continue;
+
+    const totalBase=slot.reduce((s,m)=>s+(m.fase==='elim'?45:9),0);
+    const combinedPot=acum+totalBase;
+
+    if(slot.length===1){
+      // ── Partido único ──
+      const m=slot[0];
+      const base=m.fase==='elim'?45:9;
+      const pot=acum+base;
+      fondo[m.id]=pot;
+      const res=state.resultados[m.id];
+      if(res){
+        const preds=state.predicciones[m.id]||{};
+        const wins=J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
+        ganadores[m.id]=wins;
+        if(wins.length){
+          const e=pot/wins.length;pagos[m.id]=e;
+          wins.forEach(j=>ganancias[j]+=e);acum=0;
+        }else acum=pot;
+      }else{ganadores[m.id]=[];}
+    } else {
+      // ── Partidos simultáneos ──
+      // Mostrar la bolsa combinada en todos
+      slot.forEach(m=>{fondo[m.id]=combinedPot;ganadores[m.id]=[];});
+
+      const allHaveResult=slot.every(m=>state.resultados[m.id]);
+
+      if(!allHaveResult){
+        // Aún hay resultados pendientes: no distribuir todavía
+        // acum no cambia hasta tener todos los resultados
+      } else {
+        // Todos tienen resultado: aplicar lógica de simultáneos
+        const matchWins=slot.map(m=>{
+          const preds=state.predicciones[m.id]||{};
+          const res=state.resultados[m.id];
+          return J.filter(j=>{const pr=preds[j];return pr&&pr[0]===res[0]&&pr[1]===res[1];});
+        });
+        slot.forEach((m,idx)=>ganadores[m.id]=matchWins[idx]);
+
+        const wonIdx=matchWins.map((w,idx)=>w.length>0?idx:-1).filter(x=>x>=0);
+
+        if(wonIdx.length===0){
+          // Nadie gana: todo acumula
+          acum=combinedPot;
+
+        } else if(wonIdx.length>1){
+          // Varios partidos tienen ganadores: SE SUMA TODO y se reparte
+          const allWinnersSet=new Set();
+          wonIdx.forEach(idx=>matchWins[idx].forEach(w=>allWinnersSet.add(w)));
+          const allWinners=[...allWinnersSet];
+          const perWinner=combinedPot/allWinners.length;
+          allWinners.forEach(j=>ganancias[j]+=perWinner);
+          slot.forEach(m=>pagos[m.id]=perWinner);
+          acum=0;
+
+        } else {
+          // Solo un partido tiene ganadores
+          const firstIdx=wonIdx[0];
+
+          // El ganador se lleva: acum + bases de partidos hasta el primero que ganó
+          let winPot=acum;
+          for(let k=0;k<=firstIdx;k++) winPot+=slot[k].fase==='elim'?45:9;
+
+          // Partidos después del ganador que no tuvieron ganador: acumulan
+          let newAccum=0;
+          for(let k=firstIdx+1;k<slot.length;k++) newAccum+=slot[k].fase==='elim'?45:9;
+
+          const winners=matchWins[firstIdx];
+          const per=winPot/winners.length;
+          winners.forEach(j=>ganancias[j]+=per);
+          pagos[slot[firstIdx].id]=per;
+          acum=newAccum;
+        }
+      }
+    }
   }
-  return{fondo,ganadores,acumulado:acum,ganancias};
+  return{fondo,ganadores,acumulado:acum,ganancias,pagos};
 }
 
 const DS=['dom','lun','mar','mie','jue','vie','sab'],MS=['ene','feb','mar','abr','may','jun','jul'];
@@ -589,7 +673,7 @@ function cancelChip(){editChip=null;renderAll();}
 function onScoreKey(e,pid){if(e.key==='Enter')saveScore(pid);if(e.key==='Escape')cancelScore();}
 function onChipKey(e,pid,player){if(e.key==='Enter')saveChip(pid,player);if(e.key==='Escape')cancelChip();}
 
-function renderCard(p,fondo,ganadores){
+function renderCard(p,fondo,ganadores,pagos){
   const res=state.resultados[p.id],preds=state.predicciones[p.id]||{};
   const started=matchStarted(p);
   const hasPreds=Object.keys(preds).length>0,wins=ganadores[p.id]||[],f=fondo[p.id],pid=p.id;
@@ -601,11 +685,10 @@ function renderCard(p,fondo,ganadores){
   }else if(!res && started){
     statusHtml=`<span class="mc-live"><span class="live-dot"></span>En juego</span>`;
   }else if(wins.length>0){
-    const each=f/wins.length;
-    const qs=each%1===0?each:each.toFixed(2);
+    const pago=pagos&&pagos[pid]!==undefined?pagos[pid]:f/wins.length;
+    const qs=pago%1===0?pago:pago.toFixed(2);
     const names=wins.join(', ');
-    const total=f;
-    statusHtml=`<span class="mc-win">${names} &mdash; Q${qs} c/u${wins.length>1?' (bolsa Q'+total+')':''}</span>`;
+    statusHtml=`<span class="mc-win">${names} &mdash; Q${qs} c/u${wins.length>1||f>9?' (bolsa Q'+f+')':''}</span>`;
   }else{
     statusHtml=`<span class="mc-done">Terminado &mdash; nadie acert&oacute;</span>`;
   }
@@ -698,13 +781,13 @@ function renderCard(p,fondo,ganadores){
 }
 
 function renderPartidos(){
-  const{fondo,ganadores}=calcFondos();
+  const{fondo,ganadores,pagos}=calcFondos();
   const sy=window.scrollY;
 
   // Grupos: todos en orden cronológico (sin subdivisión por grupo)
   const grupoMatches=PARTIDOS.filter(p=>!p.fase);
   document.getElementById('phase-grupos').innerHTML=
-    grupoMatches.map(p=>renderCard(p,fondo,ganadores)).join('');
+    grupoMatches.map(p=>renderCard(p,fondo,ganadores,pagos)).join('');
 
   // Eliminatorias: cada fase en orden
   const phases=[
@@ -717,7 +800,7 @@ function renderPartidos(){
   for(const ph of phases){
     const ms=ph.gvals?PARTIDOS.filter(p=>ph.gvals.includes(p.g)):PARTIDOS.filter(p=>p.g===ph.gval);
     document.getElementById('phase-'+ph.id).innerHTML=
-      ms.map(p=>renderCard(p,fondo,ganadores)).join('');
+      ms.map(p=>renderCard(p,fondo,ganadores,pagos)).join('');
   }
   window.scrollTo(0,sy);
 }
