@@ -279,6 +279,32 @@ input{font-family:var(--ui)}
 /* 3rd place */
 .br-3rd-label{font-size:10px;font-weight:800;color:var(--t3);text-align:center;
   text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px}
+
+/* ─── PUNTUACIÓN ELIMINATORIAS ─── */
+.chip-pts{font-size:9px;font-weight:800;margin-top:2px;padding:1px 5px;border-radius:5px;display:inline-block}
+.pts-5{background:rgba(245,158,11,.3);color:var(--goldd)}
+.pts-3{background:rgba(99,102,241,.25);color:#a5b4fc}
+.pts-1{background:rgba(255,255,255,.08);color:var(--t2)}
+.pts-0{background:rgba(239,68,68,.1);color:var(--t3);opacity:.6}
+.pts-b{background:rgba(74,222,128,.2);color:#4ade80}
+.chip-pen-note{font-size:8px;color:var(--t3);margin-top:1px;letter-spacing:.3px}
+.chip.hit3{border-color:rgba(99,102,241,.45);background:rgba(99,102,241,.07)}
+.chip.miss{opacity:.5}
+/* penalty selectors */
+.pen-chip-wrap{display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap;justify-content:center}
+.pen-score-wrap{display:flex;align-items:center;gap:6px;margin:8px 0 4px;justify-content:center}
+.pen-lbl{font-size:9px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.pen-btn{padding:3px 7px;border-radius:7px;background:rgba(255,255,255,.06);
+  color:var(--t2);font-size:10px;font-weight:800;border:1.5px solid var(--brd);cursor:pointer;transition:all .15s}
+.pen-btn:hover{border-color:var(--gm);background:rgba(21,128,61,.12)}
+.pen-btn.pen-on{background:rgba(21,128,61,.25);color:#4ade80;border-color:var(--gm)}
+/* pts ranking */
+.pts-bnr{background:linear-gradient(135deg,#010d16,#1a003b 60%,#2d1869);
+  border-radius:16px;padding:16px 18px;margin:14px 14px 18px;
+  display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.5);border:1px solid #3b1a6b;}
+.pts-bnr h2{font-family:var(--sport);font-size:20px;color:#fff;letter-spacing:2px}
+.pts-bnr p{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.rk-q-pts{font-family:var(--sport);font-size:21px;color:#a5b4fc}
 </style>
 </head>
 <body>
@@ -310,7 +336,8 @@ input{font-family:var(--ui)}
 
 <div class="tabs">
   <button class="tab on" onclick="showTab('partidos',this)">&#127967; Partidos</button>
-  <button class="tab" onclick="showTab('ranking',this)">&#127942; Ranking</button>
+  <button class="tab" onclick="showTab('ranking',this)">&#127942; Grupos</button>
+  <button class="tab" onclick="showTab('puntuacion',this)">&#9733; Puntuación</button>
   <button class="tab" onclick="showTab('cuadro',this)">&#9776; Cuadro</button>
 </div>
 
@@ -331,6 +358,7 @@ input{font-family:var(--ui)}
   <div id="phase-final"  class="phase-section"></div>
 </div>
 <div id="view-ranking" class="view"></div>
+<div id="view-puntuacion" class="view"></div>
 <div id="view-cuadro" class="view"></div>
 
 <script>
@@ -501,6 +529,7 @@ const PARTIDOS=[
 let state={resultados:{},predicciones:{}};
 let pendingSave=false;
 let editScore=null,editChip=null,saving=false;
+let editScorePen=null;
 
 async function loadState(){
   try{
@@ -589,6 +618,59 @@ async function saveState(){
 }
 function setSyncBadge(cls,txt){const b=document.getElementById('syncBadge');b.className='sync-badge'+(cls?' '+cls:'');b.innerHTML=txt;}
 
+
+function shortTeam(n){return n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').split(' ')[0].slice(0,4);}
+
+function calcMatchPoints(pid,player,p){
+  if(!p||p.fase!=='elim') return null;
+  const res=state.resultados[pid];if(!res) return null;
+  const pred=(state.predicciones[pid]||{})[player];if(!pred) return null;
+  const [rg1,rg2]=res,rPen=res[2],[pg1,pg2]=pred,pPen=pred[2];
+  const rDiff=rg1-rg2,pDiff=pg1-pg2;
+  const rWin=rDiff>0?'e1':rDiff<0?'e2':'draw';
+  const pWin=pDiff>0?'e1':pDiff<0?'e2':'draw';
+  if(pWin!==rWin) return 0;
+  let pts=1;
+  if(pDiff===rDiff) pts=(pg1===rg1&&pg2===rg2)?5:3;
+  if(rWin==='draw'&&rPen&&pPen===rPen) pts+=1;
+  return pts;
+}
+
+function calcPuntos(){
+  const tot={};J.forEach(j=>tot[j]=0);
+  for(const p of PARTIDOS){
+    if(p.fase!=='elim') continue;
+    const res=state.resultados[p.id];if(!res) continue;
+    for(const player of matchPlayers(p)){
+      const pts=calcMatchPoints(p.id,player,p);
+      if(pts!==null) tot[player]+=pts;
+    }
+  }
+  return tot;
+}
+
+function checkPenChip(pid,key){
+  const l=document.getElementById('cl-'+pid+'-'+key)?.value;
+  const v=document.getElementById('cv-'+pid+'-'+key)?.value;
+  const d=document.getElementById('penchip-'+pid+'-'+key);
+  if(d) d.style.display=(l!==''&&v!==''&&+l===+v)?'flex':'none';
+}
+function checkPenScore(pid){
+  const l=document.getElementById('sl-'+pid)?.value;
+  const v=document.getElementById('sv-'+pid)?.value;
+  const d=document.getElementById('penscore-'+pid);
+  if(d) d.style.display=(l!==''&&v!==''&&+l===+v)?'flex':'none';
+}
+function setPenChip(pid,player,pen){
+  if(!editChip||editChip.pid!==pid||editChip.player!==player) return;
+  editChip.pen=editChip.pen===pen?null:pen;
+  const key=player.replace(/ /g,'_');
+  ['e1','e2'].forEach(s=>{const b=document.getElementById('pcb-'+pid+'-'+key+'-'+s);if(b)b.classList.toggle('pen-on',s===editChip.pen);});
+}
+function setPenScore(pid,pen){
+  editScorePen=editScorePen===pen?null:pen;
+  ['e1','e2'].forEach(s=>{const b=document.getElementById('psb-'+pid+'-'+s);if(b)b.classList.toggle('pen-on',s===editScorePen);});
+}
 function calcFondos(){
   let acum=0;
   const fondo={},ganadores={},ganancias={},pagos={};
@@ -704,24 +786,29 @@ function canEnterResult(p){
 function startScoreEdit(pid){
   const p=PARTIDOS.find(x=>x.id===pid);
   if(p&&!canEnterResult(p))return; // bloqueado hasta 15 min después del inicio
-  editScore=pid;editChip=null;renderAll();
+  editScorePen=state.resultados[pid]?.[2]||null;editScore=pid;editChip=null;renderAll();
   setTimeout(()=>{const el=document.getElementById('sl-'+pid);if(el){el.focus();el.select();}},80);
 }
 function saveScore(pid){
   const l=document.getElementById('sl-'+pid)?.value,v=document.getElementById('sv-'+pid)?.value;
-  if(l!==''&&v!==''&&l!=null&&v!=null)state.resultados[pid]=[parseInt(l),parseInt(v)];
-  editScore=null;saveState();renderAll();
+  if(l!==''&&v!==''&&l!=null&&v!=null){
+    const g1=parseInt(l),g2=parseInt(v);
+    state.resultados[pid]=(g1===g2&&editScorePen)?[g1,g2,editScorePen]:[g1,g2];
+  }
+  editScorePen=null;editScore=null;saveState();renderAll();
 }
 function delScore(pid){delete state.resultados[pid];editScore=null;saveState();renderAll();}
 function cancelScore(){editScore=null;renderAll();}
 function startChipEdit(pid,player){
   const p=PARTIDOS.find(x=>x.id===pid);
   if(p&&matchStarted(p))return; // bloqueado
-  editChip={pid,player};editScore=null;renderAll();const key=player.replace(/ /g,'_');setTimeout(()=>{const el=document.getElementById('cl-'+pid+'-'+key);if(el){el.focus();el.select();}},80);}
+  editChip={pid,player,pen:(state.predicciones[pid]||{})[player]?.[2]||null};editScore=null;renderAll();const key=player.replace(/ /g,'_');setTimeout(()=>{const el=document.getElementById('cl-'+pid+'-'+key);if(el){el.focus();el.select();}},80);}
 function saveChip(pid,player){
   const key=player.replace(/ /g,'_');
   const l=document.getElementById('cl-'+pid+'-'+key)?.value,v=document.getElementById('cv-'+pid+'-'+key)?.value;
-  if(l!==''&&v!==''&&l!=null&&v!=null){if(!state.predicciones[pid])state.predicciones[pid]={};state.predicciones[pid][player]=[parseInt(l),parseInt(v)];}
+  if(l!==''&&v!==''&&l!=null&&v!=null){if(!state.predicciones[pid])state.predicciones[pid]={};
+    const g1=parseInt(l),g2=parseInt(v);
+    state.predicciones[pid][player]=(g1===g2&&editChip?.pen)?[g1,g2,editChip.pen]:[g1,g2];}
   editChip=null;saveState();renderAll();
 }
 function delChip(pid,player){if(state.predicciones[pid])delete state.predicciones[pid][player];editChip=null;saveState();renderAll();}
@@ -753,19 +840,31 @@ function renderCard(p,fondo,ganadores,pagos){
   let scoreHtml;
   if(isEditingScore){
     const rv=res?res[0]:'',rr=res?res[1]:'';
+    const isElimScore=p.fase==='elim';
+    const isDraw2=res&&res[0]===res[1];
+    const [ta2,tb2]=isElimScore?getBTeams(pid):[p.e1,p.e2];
+    const oninpS=isElimScore?`oninput="checkPenScore(${pid})"`:'';
+    const penScoreSel=isElimScore?`<div class="pen-score-wrap" id="penscore-${pid}" style="display:${isDraw2?'flex':'none'}">
+      <span class="pen-lbl">Penales:</span>
+      <button id="psb-${pid}-e1" class="pen-btn${editScorePen==='e1'?' pen-on':''}" onclick="setPenScore(${pid},'e1')">${shortTeam(ta2)}</button>
+      <button id="psb-${pid}-e2" class="pen-btn${editScorePen==='e2'?' pen-on':''}" onclick="setPenScore(${pid},'e2')">${shortTeam(tb2)}</button>
+    </div>`:'';
     scoreHtml=`<div class="score-edit"><div class="se-row">
-      <input id="sl-${pid}" class="sei" type="number" min="0" max="20" value="${rv}" placeholder="0" onkeydown="onScoreKey(event,${pid})">
+      <input id="sl-${pid}" class="sei" type="number" min="0" max="20" value="${rv}" placeholder="0" onkeydown="onScoreKey(event,${pid})" ${oninpS}>
       <span class="sei-dash">&#8212;</span>
-      <input id="sv-${pid}" class="sei" type="number" min="0" max="20" value="${rr}" placeholder="0" onkeydown="onScoreKey(event,${pid})">
-    </div><div class="se-btns">
+      <input id="sv-${pid}" class="sei" type="number" min="0" max="20" value="${rr}" placeholder="0" onkeydown="onScoreKey(event,${pid})" ${oninpS}>
+    </div>${penScoreSel}<div class="se-btns">
       <button class="se-ok" onclick="saveScore(${pid})">&#10003; Guardar</button>
       ${res?`<button class="se-del" onclick="delScore(${pid})">&#128465;</button>`:''}
       <button class="se-x" onclick="cancelScore()">&#10005;</button>
     </div></div>`;
   }else if(res){
+    const penW=res[2];
+    const [ta,tb]=p.fase==='elim'?getBTeams(pid):[p.e1,p.e2];
+    const penTxt=penW?`AET · ${shortTeam(penW==='e1'?ta:tb)} pen.`:'Resultado final';
     scoreHtml=`<div style="text-align:center">
       <div class="score-nums" style="cursor:pointer" onclick="startScoreEdit(${pid})">${res[0]}<span class="score-dash">&#8212;</span>${res[1]}</div>
-      <div class="final-txt">Resultado final</div>
+      <div class="final-txt">${penTxt}</div>
       <button class="btn-edit-result" onclick="startScoreEdit(${pid})">Editar</button>
     </div>`;
   }else{
@@ -788,13 +887,22 @@ function renderCard(p,fondo,ganadores,pagos){
     const isEditingThis=editChip&&editChip.pid===pid&&editChip.player===j;
     const won=res&&pr&&pr[0]===res[0]&&pr[1]===res[1];
     if(isEditingThis){
+      const isElimEdit=p.fase==='elim';
+      const isDraw=pr&&pr[0]===pr[1];
+      const penSel=isElimEdit?`<div class="pen-chip-wrap" id="penchip-${pid}-${key}" style="display:${isDraw?'flex':'none'}">
+        <span class="pen-lbl">Pen:</span>
+        <button id="pcb-${pid}-${key}-e1" class="pen-btn${editChip&&editChip.pen==='e1'?' pen-on':''}" onclick="setPenChip(${pid},'${j}','e1')">${shortTeam(p.e1)}</button>
+        <button id="pcb-${pid}-${key}-e2" class="pen-btn${editChip&&editChip.pen==='e2'?' pen-on':''}" onclick="setPenChip(${pid},'${j}','e2')">${shortTeam(p.e2)}</button>
+      </div>`:'';
+      const oninp=isElimEdit?`oninput="checkPenChip(${pid},'${key}')"`:'';
       chipsHtml+=`<div class="chip chip-editing"><div class="chip-name">${SHORT[j]}</div>
         <div class="chip-edit-row">
-          <input id="cl-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[0]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
+          <input id="cl-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[0]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')" ${oninp}>
           <span class="cie-sep">-</span>
-          <input id="cv-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[1]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')">
+          <input id="cv-${pid}-${key}" class="cie" type="number" min="0" max="20" value="${pr?pr[1]:''}" placeholder="0" onkeydown="onChipKey(event,${pid},'${j}')" ${oninp}>
           <button class="cie-ok" onclick="saveChip(${pid},'${j}')">&#10003;</button>
-          ${pr?`<button class="cie-del" onclick="delChip(${pid},'${j}')">&#128465;</button>`:''}        </div></div>`;
+          ${pr?`<button class="cie-del" onclick="delChip(${pid},'${j}')">&#128465;</button>`:''}
+        </div>${penSel}</div>`;
     }else if(!pr){
       if(started){
         // Partido iniciado: no se puede agregar prediccion
@@ -812,12 +920,27 @@ function renderCard(p,fondo,ganadores,pagos){
       }
     }else{
       if(started){
-        // Partido iniciado: prediccion de solo lectura
-        chipsHtml+=`<div class="chip${won?' win':' locked'}" style="cursor:default">
-          <div class="chip-name">${SHORT[j]}</div>
-          <div class="chip-score">${pr[0]}-${pr[1]}</div>
-          ${won?`<div class="chip-crown">&#11088;</div>`:`<div class="chip-locked-hint">cerrado</div>`}
-        </div>`;
+        if(p.fase==='elim'&&res){
+          // Eliminatoria con resultado: mostrar puntos
+          const mpts=calcMatchPoints(pid,j,p);
+          const ptsC=mpts===5?'pts-5':mpts>=3?'pts-3':mpts===1?'pts-1':mpts===0?'pts-0':'';
+          const ptsL=mpts!==null?(mpts+'pt'+(mpts!==1?'s':'')):'';
+          const penN=pr&&pr[2]?`<div class="chip-pen-note">P:${shortTeam(pr[2]==='e1'?p.e1:p.e2)}</div>`:'';
+          const cls=mpts===5?' win':mpts>=3?' hit3':mpts===0?' miss':'';
+          chipsHtml+=`<div class="chip${cls}" style="cursor:default">
+            <div class="chip-name">${SHORT[j]}</div>
+            <div class="chip-score">${pr?pr[0]+'-'+pr[1]:'—'}</div>
+            ${penN}
+            ${mpts!==null?`<div class="chip-pts ${ptsC}">${ptsL}</div>`:''}
+          </div>`;
+        }else{
+          // Grupo o sin resultado: solo lectura
+          chipsHtml+=`<div class="chip${won?' win':' locked'}" style="cursor:default">
+            <div class="chip-name">${SHORT[j]}</div>
+            <div class="chip-score">${pr[0]}-${pr[1]}</div>
+            ${won?`<div class="chip-crown">&#11088;</div>`:`<div class="chip-locked-hint">cerrado</div>`}
+          </div>`;
+        }
       }else{
         chipsHtml+=`<div class="chip${won?' win':''}" onclick="startChipEdit(${pid},'${j}')">
           <div class="chip-name">${SHORT[j]}</div>
@@ -922,6 +1045,7 @@ function showTab(name,btn){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('view-'+name).classList.add('on');btn.classList.add('on');
   if(name==='ranking')renderRanking();
+  if(name==='puntuacion')renderPuntuacion();
   if(name==='cuadro'){document.getElementById('view-cuadro').innerHTML='<div class="bracket-outer">'+renderBracket()+'</div>';}
 }
 
@@ -1078,7 +1202,60 @@ function renderBracket(){
     </div>`;
 }
 
-function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();}
+
+function renderPuntuacion(){
+  const tots=calcPuntos();
+  // Only show players who participate in elimination (all 10: J includes JENNY)
+  const elimPlayers=J; // all players since JENNY joins from R32
+  const aciertos={};
+  const byType={'5':{},'3':{},'1':{},'0':{}};
+  elimPlayers.forEach(j=>{aciertos[j]=0;Object.keys(byType).forEach(k=>byType[k][j]=0);});
+  for(const p of PARTIDOS){
+    if(p.fase!=='elim') continue;
+    const res=state.resultados[p.id];if(!res) continue;
+    for(const player of matchPlayers(p)){
+      const pts=calcMatchPoints(p.id,player,p);
+      if(pts===null) continue;
+      aciertos[player]++;
+      const k=pts>=5?'5':pts>=3?'3':pts>=1?'1':'0';
+      byType[k][player]=(byType[k][player]||0)+1;
+    }
+  }
+  const sorted=[...elimPlayers].sort((a,b)=>tots[b]-tots[a]||aciertos[b]-aciertos[a]);
+  const bdrs=['#a5b4fc','#aaaaaa','#b45309'];
+  let pod='<div class="podium">';
+  sorted.slice(0,3).forEach((j,i)=>{
+    const pt=tots[j],ac=aciertos[j];
+    const purl=PHOTOS[j];
+    const ini=j.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const pbg=['#1d4ed8','#7c3aed','#be185d','#0f766e','#b45309','#15803d','#c2410c','#0369a1','#0e7490','#7e1d1d'][J.indexOf(j)%10];
+    const pimg=purl
+      ?`<img src="${purl}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid ${bdrs[i]};display:block;margin:0 auto 4px">`
+      :`<div style="width:72px;height:72px;border-radius:50%;background:${pbg};border:3px solid ${bdrs[i]};display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-family:var(--sport);font-size:20px;color:#fff">${ini}</div>`;
+    pod+=`<div class="pod p${i+1}">
+      <div style="position:relative;display:inline-block">${pimg}<div style="position:absolute;bottom:-4px;right:-4px;background:${bdrs[i]};color:#000;width:22px;height:22px;border-radius:50%;font-family:var(--sport);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)">${i+1}</div></div>
+      <div class="pod-name">${j}</div><div class="rk-q-pts">${pt}pts</div>
+      <div class="pod-ac">${ac} partido${ac!==1?'s':''}</div><div class="pod-base"></div>
+    </div>`;
+  });
+  pod+='</div>';
+  let list='<div class="rank-list">';
+  sorted.slice(3).forEach((j,i)=>{
+    const pt=tots[j],ac=aciertos[j];
+    const d5=byType['5'][j]||0,d3=byType['3'][j]||0,d1=byType['1'][j]||0;
+    list+=`<div class="rank-row"><div class="rk-pos" style="color:#a5b4fc">${i+4}</div>${avatar(j,40)}<div class="rk-name">${j}</div>
+      <div class="rk-stats">
+        <div class="rk-ac" style="font-size:9px">${d5?'5pts×'+d5+' ':''}${d3?'3pts×'+d3+' ':''}${d1?'1pt×'+d1:''}</div>
+        <div class="rk-q-pts">${pt}pts</div>
+      </div></div>`;
+  });
+  list+='</div>';
+  document.getElementById('view-puntuacion').innerHTML=`
+    <div class="pts-bnr"><div><h2>PUNTUACIÓN</h2><p>Fase eliminatoria · Mundial 2026</p></div></div>
+    ${pod}${list}`;
+}
+function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();
+  if(document.getElementById('view-puntuacion').classList.contains('on'))renderPuntuacion();}
 
 async function init(){
   try{ await loadState(); }
