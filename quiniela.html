@@ -336,7 +336,7 @@ input{font-family:var(--ui)}
 
 <div class="tabs">
   <button class="tab on" onclick="showTab('partidos',this)">&#127967; Partidos</button>
-  <button class="tab" onclick="showTab('ranking',this)">&#127942; Resultados grupos</button>
+  <button class="tab" onclick="showTab('ranking',this)">&#127942; Grupos</button>
   <button class="tab" onclick="showTab('puntuacion',this)">&#9733; Puntuación</button>
   <button class="tab" onclick="showTab('cuadro',this)">&#9776; Cuadro</button>
 </div>
@@ -676,13 +676,16 @@ function calcFondos(){
   const fondo={},ganadores={},ganancias={},pagos={};
   J.forEach(j=>ganancias[j]=0);
 
+  // Solo fase de grupos maneja dinero/bolsa; eliminatorias usa solo puntos
+  const GRUPO_PARTIDOS=PARTIDOS.filter(p=>!p.fase);
+
   // Agrupar partidos por fecha+hora para detectar simultáneos
   let i=0;
-  while(i<PARTIDOS.length){
-    const p=PARTIDOS[i];
+  while(i<GRUPO_PARTIDOS.length){
+    const p=GRUPO_PARTIDOS[i];
     let jj=i+1;
-    while(jj<PARTIDOS.length && PARTIDOS[jj].d===p.d && PARTIDOS[jj].h===p.h) jj++;
-    const rawSlot=PARTIDOS.slice(i,jj);
+    while(jj<GRUPO_PARTIDOS.length && GRUPO_PARTIDOS[jj].d===p.d && GRUPO_PARTIDOS[jj].h===p.h) jj++;
+    const rawSlot=GRUPO_PARTIDOS.slice(i,jj);
     i=jj;
 
     // Solo partidos con predicciones
@@ -821,12 +824,16 @@ function renderCard(p,fondo,ganadores,pagos){
   const started=matchStarted(p);
   const hasPreds=Object.keys(preds).length>0,wins=ganadores[p.id]||[],f=fondo[p.id],pid=p.id;
   const isEditingScore=(editScore===pid),isEditing=isEditingScore||(editChip&&editChip.pid===pid);
-  const potBadge=(!res&&f)?`<span class="pot-badge">Q${f}</span>`:'';
+  const potBadge=(!res&&f&&p.fase!=='elim')?`<span class="pot-badge">Q${f}</span>`:'';
+  const isElim=p.fase==='elim';
   let statusHtml;
   if(!res && !started){
     statusHtml=`<span class="mc-pend">Pendiente</span>`;
   }else if(!res && started){
     statusHtml=`<span class="mc-live"><span class="live-dot"></span>En juego</span>`;
+  }else if(isElim){
+    // Eliminatorias: sin dinero, solo puntos (se muestran en cada ficha)
+    statusHtml=`<span class="mc-done">Resultado final</span>`;
   }else if(wins.length>0){
     const pago=pagos&&pagos[pid]!==undefined?pagos[pid]:f/wins.length;
     const qs=pago%1===0?pago:pago.toFixed(2);
@@ -951,7 +958,7 @@ function renderCard(p,fondo,ganadores,pagos){
     }
   });
   chipsHtml+='</div>';
-  const winBar=wins.length?`<div class="winner-bar">Gan&oacute;: <strong>${wins.join(', ')}</strong></div>`:'';
+  const winBar=(wins.length&&!isElim)?`<div class="winner-bar">Gan&oacute;: <strong>${wins.join(', ')}</strong></div>`:'';
 
   return `<div id="mc-${pid}" class="mc${isEditing?' editing':''}">
     <div class="mc-bar"><div style="display:flex;align-items:center;gap:8px">${statusHtml}${potBadge}</div>${dateHtml}</div>
@@ -1034,7 +1041,7 @@ function renderRanking(){
 
 function updateBolsa(){
   const{fondo,acumulado}=calcFondos();
-  const next=PARTIDOS.find(p=>!state.resultados[p.id]&&Object.keys(state.predicciones[p.id]||{}).length>0);
+  const next=PARTIDOS.find(p=>!p.fase&&!state.resultados[p.id]&&Object.keys(state.predicciones[p.id]||{}).length>0);
   const pot=next?(fondo[next.id]||0):acumulado;
   document.getElementById('bolsaNum').textContent='Q'+pot;
   document.getElementById('bolsaSub').innerHTML=next&&pot>0?`Pr&oacute;ximo:<br>${next.e1} vs ${next.e2}`:'';
