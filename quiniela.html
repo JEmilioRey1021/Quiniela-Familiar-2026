@@ -276,6 +276,10 @@ input{font-family:var(--ui)}
 /* final special */
 .bm.bm-final{border-color:var(--gold);box-shadow:0 0 12px rgba(245,158,11,.3)}
 .bm.bm-final .bmt.bmt-w{background:linear-gradient(135deg,rgba(245,158,11,.25),rgba(245,158,11,.1))}
+
+.br-conn-top-m{flex:1;border-left:2px solid var(--brd);border-bottom:2px solid var(--brd);border-radius:0 0 0 4px}
+.br-conn-bot-m{flex:1;border-left:2px solid var(--brd);border-top:2px solid var(--brd);border-radius:4px 0 0 0}
+.br-trophy{text-align:center;font-size:26px;margin:8px 0}
 /* 3rd place */
 .br-3rd-label{font-size:10px;font-weight:800;color:var(--t3);text-align:center;
   text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px}
@@ -1090,7 +1094,12 @@ const BRACKET_PARENTS={
 function getLoser(id){
   const res=state.resultados[id];if(!res)return null;
   const [t1,t2]=getBTeams(id);
-  if(res[0]>res[1])return t2;if(res[1]>res[0])return t1;return null;
+  if(res[0]>res[1])return t2;
+  if(res[1]>res[0])return t1;
+  // Empate: decide por penales
+  if(res[2]==='e1')return t2;
+  if(res[2]==='e2')return t1;
+  return null;
 }
 function getBTeams(id){
   const pars=BRACKET_PARENTS[id];
@@ -1100,7 +1109,12 @@ function getBTeams(id){
 function getBWinner(id){
   const res=state.resultados[id];if(!res)return null;
   const [t1,t2]=getBTeams(id);
-  if(res[0]>res[1])return t1;if(res[1]>res[0])return t2;return null;
+  if(res[0]>res[1])return t1;
+  if(res[1]>res[0])return t2;
+  // Empate: decide por penales (res[2]: 'e1' o 'e2')
+  if(res[2]==='e1')return t1;
+  if(res[2]==='e2')return t2;
+  return null;
 }
 function bCard(id,isFinal=false){
   const [t1,t2]=getBTeams(id);
@@ -1120,92 +1134,97 @@ function bCard(id,isFinal=false){
     ${row(t2,u2,res?res[1]:undefined,w===t2&&w!==null&&w!=='–')}
   </div>`;
 }
-function connCol(n){
+function connCol(n,mirrored=false){
   // Creates a connector column with n bracket pair connectors
   let html='<div class="br-conn">';
-  for(let i=0;i<n;i++) html+=`<div class="br-conn-grp"><div class="br-conn-top"></div><div class="br-conn-bot"></div></div>`;
+  for(let i=0;i<n;i++) html+=`<div class="br-conn-grp"><div class="br-conn-top${mirrored?'-m':''}"></div><div class="br-conn-bot${mirrored?'-m':''}"></div></div>`;
   return html+'</div>';
 }
+
 function renderBracket(){
-  // Header widths: r32=148, conn=20, r16=148, conn=20, qf=148, conn=20, sf=148, conn=20, final=148
-  const colW=148,connW=20;
-  const total=(colW+connW)*4+colW;
+  const colW=140,connW=18;
+  const sides=8; // ancho columnas a cada lado
+  const total=(colW+connW)*8+colW+connW*2; // 4 cols izq + 4 cols der + final
   const rnd=(label,w)=>`<div class="bracket-hdr" style="width:${w}px">${label}</div>`;
-  
-  // TOP HALF: R32[73,76,75,78,77,74,79,80] → R16[89,90,91,92] → QF[97,98] → SF[101]
-  // BOTTOM HALF: R32[82,81,83,84,85,88,86,87] → R16[93,94,95,96] → QF[99,100] → SF[102]
-  // FINAL: 104  3RD: 103 (SF losers)
-  
-  const r32top=[73,76,75,78,77,74,79,80];
-  const r32bot=[82,81,83,84,85,88,86,87];
-  const r16top=[89,90,91,92];
-  const r16bot=[93,94,95,96];
-  
-  // Column renderers
-  const col=(ids,cls,spacer=false)=>{
-    return `<div class="br-col ${cls}">${ids.map((id,i)=>
-      (spacer&&i===ids.length/2)?`<div class="br-half-div"></div>${bCard(id)}`:bCard(id)
-    ).join('')}</div>`;
-  };
-  
-  const sfHtml=`<div class="br-col br-col-sf" style="justify-content:space-around">
-    ${bCard(101)}
-    <div style="height:${colW/2}px"></div>
-    ${bCard(102)}
+
+  // LADO IZQUIERDO: R32[73,76,75,78,77,74,79,80] → R16[89,90,91,92] → QF[97,98] → SF[101]
+  // LADO DERECHO:   R32[82,81,83,84,85,88,86,87] → R16[93,94,95,96] → QF[99,100] → SF[102]
+  // FINAL: 104   3ER LUGAR: 103 (perdedores de semis)
+
+  const r32L=[73,76,75,78,77,74,79,80];
+  const r32R=[82,81,83,84,85,88,86,87];
+  const r16L=[89,90,91,92];
+  const r16R=[93,94,95,96];
+
+  const colCards=(ids,gapMid)=>`<div class="br-col" style="width:${colW}px;gap:4px">
+    ${ids.map((id,i)=>`${gapMid&&i>0&&i%2===0?'<div style="height:12px"></div>':''}<div>${bCard(id)}</div>`).join('')}
   </div>`;
-  
-  const finalHtml=`<div class="br-col br-col-final" style="justify-content:center;gap:12px">
+
+  const centerHtml=`<div class="br-col-final" style="width:${colW}px">
     <div class="br-3rd-label">3er Lugar</div>
     ${(()=>{
       const l1=getLoser(101)||'–';
       const l2=getLoser(102)||'–';
       const res=state.resultados[103];
       const u1=flagUrl(l1),u2=flagUrl(l2);
-      const row=(t,u,s)=>`<div class="bmt ${res&&res[0]>res[1]&&t===l1?' bmt-w':res&&res[1]>res[0]&&t===l2?' bmt-w':''}">
+      let w103=null;
+      if(res){
+        if(res[0]>res[1])w103=l1;else if(res[1]>res[0])w103=l2;
+        else if(res[2]==='e1')w103=l1;else if(res[2]==='e2')w103=l2;
+      }
+      const row=(t,u,s)=>`<div class="bmt${w103&&t===w103?' bmt-w':''}">
         ${u?`<img src="${u}" class="bm-flag">`:`<span class="bm-flag-ph"></span>`}
         <span class="bm-name">${t==='–'?'Por def.':t}</span>
         ${s!==undefined?`<span class="bm-score">${s}</span>`:''}
       </div>`;
       return `<div class="bm">${row(l1,u1,res?res[0]:undefined)}${row(l2,u2,res?res[1]:undefined)}</div>`;
     })()}
-    <div class="br-3rd-label" style="margin-top:8px">Final</div>
+    <div class="br-trophy">&#127942;</div>
+    <div class="br-3rd-label">Final</div>
     ${bCard(104,true)}
   </div>`;
-  
+
   return `
     <div class="bracket-hdrs" style="min-width:${total}px;margin-bottom:4px">
       ${rnd('16avos',colW)}${rnd('',connW)}${rnd('8avos',colW)}${rnd('',connW)}
-      ${rnd('4tos',colW)}${rnd('',connW)}${rnd('Semis',colW)}${rnd('',connW)}${rnd('Final',colW)}
+      ${rnd('4tos',colW)}${rnd('',connW)}${rnd('Semis',colW)}${rnd('',connW)}
+      ${rnd('FINAL',colW)}
+      ${rnd('',connW)}${rnd('Semis',colW)}${rnd('',connW)}${rnd('4tos',colW)}
+      ${rnd('',connW)}${rnd('8avos',colW)}${rnd('',connW)}${rnd('16avos',colW)}
     </div>
     <div class="bracket-body" style="min-width:${total}px">
-      <!-- R32: top then bottom with mid gap -->
-      <div class="br-col br-col-r32" style="gap:4px">
-        ${r32top.map((id,i)=>`${i>0&&i%2===0?'<div style="height:12px"></div>':''}<div>${bCard(id)}</div>`).join('')}
-        <div style="height:16px"></div>
-        ${r32bot.map((id,i)=>`${i>0&&i%2===0?'<div style="height:12px"></div>':''}<div>${bCard(id)}</div>`).join('')}
-      </div>
+      <!-- ═══ LADO IZQUIERDO ═══ -->
+      ${colCards(r32L,true)}
       ${connCol(8)}
-      <!-- R16 -->
-      <div class="br-col br-col-r16" style="gap:4px">
-        ${r16top.map(id=>`<div>${bCard(id)}</div>`).join('')}
-        <div style="height:16px"></div>
-        ${r16bot.map(id=>`<div>${bCard(id)}</div>`).join('')}
+      <div class="br-col" style="width:${colW}px;gap:4px;justify-content:space-around">
+        ${r16L.map(id=>`<div>${bCard(id)}</div>`).join('')}
       </div>
       ${connCol(4)}
-      <!-- QF -->
-      <div class="br-col br-col-qf" style="gap:4px">
-        <div>${bCard(97)}</div>
-        <div>${bCard(98)}</div>
-        <div style="height:16px"></div>
-        <div>${bCard(99)}</div>
-        <div>${bCard(100)}</div>
+      <div class="br-col" style="width:${colW}px;justify-content:space-around">
+        <div>${bCard(97)}</div><div>${bCard(98)}</div>
       </div>
       ${connCol(2)}
-      <!-- SF -->
-      ${sfHtml}
+      <div class="br-col" style="width:${colW}px;justify-content:center">
+        ${bCard(101)}
+      </div>
       ${connCol(1)}
-      <!-- Final + 3rd -->
-      ${finalHtml}
+      <!-- ═══ CENTRO: FINAL + 3ER LUGAR ═══ -->
+      ${centerHtml}
+      ${connCol(1,true)}
+      <!-- ═══ LADO DERECHO (espejo) ═══ -->
+      <div class="br-col" style="width:${colW}px;justify-content:center">
+        ${bCard(102)}
+      </div>
+      ${connCol(2,true)}
+      <div class="br-col" style="width:${colW}px;justify-content:space-around">
+        <div>${bCard(99)}</div><div>${bCard(100)}</div>
+      </div>
+      ${connCol(4,true)}
+      <div class="br-col" style="width:${colW}px;gap:4px;justify-content:space-around">
+        ${r16R.map(id=>`<div>${bCard(id)}</div>`).join('')}
+      </div>
+      ${connCol(8,true)}
+      ${colCards(r32R,true)}
     </div>`;
 }
 
