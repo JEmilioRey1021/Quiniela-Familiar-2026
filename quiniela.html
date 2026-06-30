@@ -309,6 +309,31 @@ input{font-family:var(--ui)}
 .pts-bnr h2{font-family:var(--sport);font-size:20px;color:#fff;letter-spacing:2px}
 .pts-bnr p{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
 .rk-q-pts{font-family:var(--sport);font-size:21px;color:#a5b4fc}
+.pts-bnr{position:relative}
+.pts-info-btn{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.25);color:#fff;
+  font-family:var(--sport);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background .15s}
+.pts-info-btn:hover{background:rgba(255,255,255,.2)}
+.pts-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+.pts-modal{background:var(--card);border:1px solid var(--brd);border-radius:16px;max-width:420px;width:100%;
+  max-height:84vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+.pts-modal-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--brd);background:var(--card2)}
+.pts-modal-hdr h3{font-family:var(--sport);font-size:16px;color:#fff;letter-spacing:1px}
+.pts-modal-x{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);
+  color:var(--t2);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pts-modal-body{padding:16px 18px 20px}
+.pts-rule{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--brd)}
+.pts-rule:last-of-type{border-bottom:none}
+.pts-rule-badge{flex-shrink:0;min-width:48px;text-align:center;padding:5px 0;border-radius:8px;
+  font-family:var(--sport);font-size:15px;font-weight:700}
+.pts-rule-txt{font-size:12.5px;color:var(--t2);line-height:1.5;padding-top:3px}
+.pts-rule-txt strong{color:var(--t1)}
+.pts-modal-note{margin-top:14px;padding:12px 14px;background:rgba(255,255,255,.04);
+  border-radius:10px;border:1px solid var(--brd);font-size:11.5px;color:var(--t3);line-height:1.6}
+
 </style>
 </head>
 <body>
@@ -1229,6 +1254,50 @@ function renderBracket(){
 }
 
 
+
+function showPtsInfo(){
+  const overlay=document.createElement('div');
+  overlay.className='pts-modal-overlay';
+  overlay.id='ptsInfoOverlay';
+  overlay.onclick=(e)=>{if(e.target===overlay)hidePtsInfo();};
+  overlay.innerHTML=`
+    <div class="pts-modal">
+      <div class="pts-modal-hdr">
+        <h3>Sistema de puntuación</h3>
+        <button class="pts-modal-x" onclick="hidePtsInfo()">&#10005;</button>
+      </div>
+      <div class="pts-modal-body">
+        <div class="pts-rule">
+          <div class="pts-rule-badge pts-5">5 pts</div>
+          <div class="pts-rule-txt"><strong>Marcador exacto.</strong> El resultado predicho coincide exactamente con el resultado final.</div>
+        </div>
+        <div class="pts-rule">
+          <div class="pts-rule-badge pts-3">3 pts</div>
+          <div class="pts-rule-txt"><strong>Diferencia de goles.</strong> No acertó el marcador exacto, pero sí la diferencia de goles y el ganador.</div>
+        </div>
+        <div class="pts-rule">
+          <div class="pts-rule-badge pts-1">1 pt</div>
+          <div class="pts-rule-txt"><strong>Ganador o empate.</strong> Acertó únicamente quién ganaba (o que hubo empate), sin acertar el marcador ni la diferencia.</div>
+        </div>
+        <div class="pts-rule">
+          <div class="pts-rule-badge pts-0">0 pts</div>
+          <div class="pts-rule-txt"><strong>Sin acierto.</strong> No acertó quién ganaba el partido.</div>
+        </div>
+        <div class="pts-rule">
+          <div class="pts-rule-badge pts-b">+1 pt</div>
+          <div class="pts-rule-txt"><strong>Bono de penales.</strong> Si predijo un empate y acertó qué equipo gana en la tanda de penales, suma un punto extra a lo ya ganado por ese partido.</div>
+        </div>
+        <div class="pts-modal-note">
+          Para acceder a cualquier punto es necesario haber acertado primero quién ganaba el partido (o el empate). Si predijo un marcador con diferencia de goles correcta pero el resultado real no fue empate ni el mismo ganador, la predicción vale 0 puntos.
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+function hidePtsInfo(){
+  const el=document.getElementById('ptsInfoOverlay');
+  if(el) el.remove();
+}
 function renderPuntuacion(){
   const tots=calcPuntos();
   // Only show players who participate in elimination (all 10: J includes JENNY)
@@ -1277,7 +1346,10 @@ function renderPuntuacion(){
   });
   list+='</div>';
   document.getElementById('view-puntuacion').innerHTML=`
-    <div class="pts-bnr"><div><h2>PUNTUACIÓN</h2><p>Fase eliminatoria · Mundial 2026</p></div></div>
+    <div class="pts-bnr">
+      <div><h2>PUNTUACIÓN</h2><p>Fase eliminatoria · Mundial 2026</p></div>
+      <button class="pts-info-btn" onclick="showPtsInfo()">i</button>
+    </div>
     ${pod}${list}`;
 }
 function renderAll(){renderPartidos();updateBolsa();if(document.getElementById('view-ranking').classList.contains('on'))renderRanking();
